@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Application Market Analytics{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        notion: {
+                            bg: '#ffffff',
+                            sidebar: '#f7f6f3',
+                            border: '#e9e9e7',
+                            text: '#37352f',
+                            textLight: '#787774',
+                            blue: '#0b85f3',
+                            blueLight: '#e3f2fd',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+    </style>
+</head>
+<body class="bg-notion-bg text-notion-text">
+    <nav class="border-b border-notion-border bg-white sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-semibold text-notion-text">📊 Market Analytics</h1>
+                <ul class="flex space-x-6">
+                    <li><a href="/" class="text-notion-text hover:text-notion-blue transition-colors">대시보드</a></li>
+                    <li><a href="/apps" class="text-notion-text hover:text-notion-blue transition-colors">앱 관리</a></li>
+                    <li><a href="/analysis" class="text-notion-text hover:text-notion-blue transition-colors">분석</a></li>
+                    <li><a href="/report" class="text-notion-text hover:text-notion-blue transition-colors">AI 리포트</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <script src="/static/main.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h2 class="text-3xl font-bold text-notion-text mb-2">AI 리포트</h2>
+        <p class="text-notion-textLight">ChatGPT를 활용한 안드로이드 마켓 종합 분석 리포트</p>
+    </div>
+    
+    <div class="bg-white border border-notion-border rounded-lg p-6">
+        <h3 class="text-xl font-semibold text-notion-text mb-4">리포트 생성</h3>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">분석할 앱 선택 (선택하지 않으면 전체 앱 분석)</label>
+                <select id="app-select" multiple class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue min-h-[100px]">
+                    <option value="">로딩 중...</option>
+                </select>
+                <p class="text-xs text-notion-textLight mt-1">Ctrl/Cmd 키를 누른 채로 여러 개 선택 가능</p>
+            </div>
+            <button onclick="generateReport()" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium">
+                📊 리포트 생성
+            </button>
+        </div>
+    </div>
+    
+    <div id="report-loading" class="hidden bg-white border border-notion-border rounded-lg p-6">
+        <div class="flex items-center gap-3">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-notion-blue"></div>
+            <p class="text-notion-text">AI가 리포트를 생성하고 있습니다. 잠시만 기다려주세요...</p>
+        </div>
+    </div>
+    
+    <div id="report-result" class="hidden bg-white border border-notion-border rounded-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold text-notion-text">분석 리포트</h3>
+            <button onclick="copyReport()" class="px-4 py-2 bg-notion-sidebar border border-notion-border rounded-md hover:bg-gray-100 transition-colors text-sm">
+                복사
+            </button>
+        </div>
+        <div id="report-content" class="prose max-w-none text-notion-text"></div>
+    </div>
+    
+    <div id="report-error" class="hidden bg-red-50 border border-red-200 rounded-lg p-4">
+        <p class="text-red-800" id="error-message"></p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+let allApps = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadApps();
+});
+
+async function loadApps() {
+    try {
+        const response = await fetch('/api/apps/');
+        allApps = await response.json();
+        
+        const selectEl = document.getElementById('app-select');
+        selectEl.innerHTML = '<option value="">전체 앱 분석</option>' + 
+            allApps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
+    } catch (error) {
+        console.error('Error loading apps:', error);
+    }
+}
+
+async function generateReport() {
+    const selectEl = document.getElementById('app-select');
+    const selectedOptions = Array.from(selectEl.selectedOptions);
+    const appIds = selectedOptions.map(opt => parseInt(opt.value)).filter(id => id);
+    
+    const loadingEl = document.getElementById('report-loading');
+    const resultEl = document.getElementById('report-result');
+    const errorEl = document.getElementById('report-error');
+    
+    loadingEl.classList.remove('hidden');
+    resultEl.classList.add('hidden');
+    errorEl.classList.add('hidden');
+    
+    try {
+        const requestBody = appIds.length > 0 ? { app_ids: appIds } : {};
+        
+        const response = await fetch('/api/report/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.detail || '리포트 생성 실패');
+        }
+        
+        if (!result.success) {
+            throw new Error(result.error || '리포트 생성 실패');
+        }
+        
+        // 마크다운 렌더링
+        const contentEl = document.getElementById('report-content');
+        contentEl.innerHTML = marked.parse(result.report);
+        
+        loadingEl.classList.add('hidden');
+        resultEl.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Error generating report:', error);
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        document.getElementById('error-message').textContent = error.message || '리포트 생성 중 오류가 발생했습니다.';
+    }
+}
+
+function copyReport() {
+    const contentEl = document.getElementById('report-content');
+    const text = contentEl.innerText || contentEl.textContent;
+    
+    navigator.clipboard.writeText(text).then(() => {
+        alert('리포트가 클립보드에 복사되었습니다.');
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        alert('복사에 실패했습니다.');
+    });
+}
+</script>
+
+<style>
+.prose {
+    line-height: 1.75;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+    font-weight: 600;
+    margin-top: 2em;
+    margin-bottom: 1em;
+    color: #37352f;
+}
+
+.prose h1 {
+    font-size: 2em;
+    border-bottom: 1px solid #e9e9e7;
+    padding-bottom: 0.3em;
+}
+
+.prose h2 {
+    font-size: 1.5em;
+}
+
+.prose h3 {
+    font-size: 1.25em;
+}
+
+.prose p {
+    margin-bottom: 1em;
+}
+
+.prose ul, .prose ol {
+    margin-bottom: 1em;
+    padding-left: 1.5em;
+}
+
+.prose li {
+    margin-bottom: 0.5em;
+}
+
+.prose code {
+    background-color: #f7f6f3;
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+.prose pre {
+    background-color: #f7f6f3;
+    padding: 1em;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin-bottom: 1em;
+}
+
+.prose blockquote {
+    border-left: 3px solid #e9e9e7;
+    padding-left: 1em;
+    margin-left: 0;
+    color: #787774;
+}
+
+.prose strong {
+    font-weight: 600;
+    color: #37352f;
+}
+</style>
+{% endblock %}
+
+
+
+
