@@ -1,9 +1,9 @@
 # Netlify 배포 설정
 
 [build]
-  # 빌드 명령어 (Python Functions는 netlify/functions/ 디렉토리의 requirements.txt 자동 설치)
-  # Functions 디렉토리에 requirements.txt가 있으면 Netlify가 자동으로 설치
-  command = "echo 'Dependencies will be installed by Netlify Functions runtime'"
+  # 빌드 명령어 없음 - Netlify Functions가 자동으로 의존성 설치
+  # functions 디렉토리의 requirements.txt를 자동으로 감지하여 설치
+  command = ""
   # 서버리스 함수 디렉토리
   functions = "netlify/functions"
   # 정적 파일 디렉토리 (저장소 루트 기준)
@@ -13,6 +13,7 @@
   PYTHON_VERSION = "3.9"
 
 # 모든 요청을 서버리스 함수로 라우팅 (FastAPI가 모든 라우팅 처리)
+# server 함수는 netlify/functions/server/ 디렉토리에 있음
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/server"
