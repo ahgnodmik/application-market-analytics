@@ -1,8 +1,8 @@
 # Netlify 배포 설정
 
 [build]
-  # 빌드 명령어 (pip 업그레이드 후 의존성 설치)
-  command = "pip install --upgrade pip && pip install -r requirements.txt"
+  # 빌드 명령어 (Python 모듈로 pip 실행)
+  command = "python -m pip install --upgrade pip && python -m pip install -r requirements.txt"
   # 서버리스 함수 디렉토리
   functions = "netlify/functions"
   # 정적 파일 디렉토리 (저장소 루트 기준)
