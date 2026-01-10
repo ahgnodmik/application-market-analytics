@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# Railway에서는 python3 사용
 """
 Railway 시작 스크립트
 앱이 정상적으로 시작되는지 확인하고 시작
