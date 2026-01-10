@@ -23,6 +23,12 @@ def get_recommendations(
 ):
     """
     필터 조건에 맞는 앱 타입 추천
+    
+    기획서 기준:
+    - 시장성 점수 >= 6.0
+    - 구현 난이도 <= 1.0
+    - 핵심 기능 수 <= 5
+    
     조건: 시장성 점수 >= min_marketability, 구현 난이도 <= max_difficulty, 핵심 기능 수 <= max_features
     """
     # 조건에 맞는 앱 필터링
