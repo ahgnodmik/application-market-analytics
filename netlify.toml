@@ -13,7 +13,7 @@
   PYTHON_VERSION = "3.9"
 
 # 모든 요청을 서버리스 함수로 라우팅 (FastAPI가 모든 라우팅 처리)
-# server 함수는 netlify/functions/server/ 디렉토리에 있음
+# server 함수는 netlify/functions/server.py 파일임
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/server"
