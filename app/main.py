@@ -1,12 +1,35 @@
-from fastapi import FastAPI
+"""
+Application Market Analytics - FastAPI Application
+Railway 배포용
+"""
+import os
+import sys
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
-from fastapi import Request
-import os
-import sys
-from app.database import engine, Base
-from app.routers import apps, analysis, upload, report
+
+# 환경 변수 로드 (로컬 개발용)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
+
+# 초기 로그
+print(f"[INIT] Python version: {sys.version}")
+print(f"[INIT] Working directory: {os.getcwd()}")
+print(f"[INIT] PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
+
+try:
+    from app.database import engine, Base
+    from app.routers import apps, analysis, upload, report
+    print("[INIT] ✅ All modules imported successfully")
+except Exception as e:
+    print(f"[INIT] ❌ ERROR importing modules: {e}")
+    import traceback
+    traceback.print_exc()
+    raise
 
 # 데이터베이스 테이블 생성 (Railway/Netlify 등 모든 환경에서 안전하게)
 try:
@@ -360,3 +383,13 @@ def health_check():
 def test_endpoint():
     """간단한 테스트 엔드포인트"""
     return {"message": "서버가 정상적으로 작동 중입니다", "timestamp": "2024-01-10"}
+
+# 앱 시작 시 로그 출력
+if __name__ != "__main__":
+    print("=" * 50)
+    print("🚀 Application Market Analytics Starting...")
+    print(f"✅ FastAPI app created: {app.title}")
+    print(f"✅ Routes registered: {len(app.routes)}")
+    print(f"✅ Static files: {static_mounted}")
+    print(f"✅ Templates: {templates is not None}")
+    print("=" * 50)
