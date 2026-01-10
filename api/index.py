@@ -1,8 +1,6 @@
 """
 Vercel Serverless Functions 엔트리 포인트
-FastAPI 앱을 Vercel Functions로 실행
 """
-from mangum import Mangum
 import sys
 import os
 
@@ -12,11 +10,21 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# FastAPI 앱 import
-from app.main import app
+# 환경 변수 로드
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except:
+    pass
 
-# Mangum으로 ASGI 앱을 Lambda/API Gateway 형식으로 변환
-handler = Mangum(app, lifespan="off")
-
-# Vercel은 handler를 직접 호출
-__all__ = ["handler"]
+try:
+    from mangum import Mangum
+    from app.main import app
+    handler = Mangum(app, lifespan="off")
+except Exception as e:
+    def handler(event, context):
+        return {
+            'statusCode': 500,
+            'headers': {'Content-Type': 'application/json'},
+            'body': f'{{"error": "Failed to initialize: {str(e)}"}}'
+        }
