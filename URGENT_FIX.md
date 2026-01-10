@@ -44,3 +44,4 @@ Base directory does not exist: /opt/build/repo/Desktop/application/016-Applicati
 
 프로젝트 파일들이 이미 GitHub 저장소 루트에 있으므로, Base directory 설정은 필요 없습니다.
 
+

@@ -66,3 +66,4 @@ netlify/
 3. `server/server.py`를 함수로 등록
 4. 모든 요청을 `/functions/server`로 라우팅
 
+

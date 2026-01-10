@@ -71,3 +71,4 @@ OPENAI_API_KEY=your-api-key-here
 - 사이트 이름: **app-market-analytics**
 - URL: `https://app-market-analytics.netlify.app`
 
+

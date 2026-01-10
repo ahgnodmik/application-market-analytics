@@ -118,3 +118,4 @@ Netlify가 자동으로 `netlify.toml`을 읽지만, 다음을 확인하세요:
 
 이제 Git에 푸시할 때마다 자동으로 Netlify에 배포됩니다!
 
+

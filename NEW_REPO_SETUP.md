@@ -144,3 +144,4 @@ git remote add origin https://github.com/your-username/app-market-analytics.git
 - Build command가 올바른지 확인
 - Functions directory가 `netlify/functions`인지 확인
 
+

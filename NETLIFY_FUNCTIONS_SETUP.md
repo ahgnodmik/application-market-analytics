@@ -76,3 +76,4 @@ cat netlify/functions/requirements.txt
 2. Netlify가 자동으로 의존성을 설치합니다
 3. 함수가 정상적으로 실행됩니다
 
+

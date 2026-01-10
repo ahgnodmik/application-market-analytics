@@ -97,3 +97,4 @@ Netlify Functions 기본 메모리: 128MB
 - Python 버전
 - pip 버전
 
+

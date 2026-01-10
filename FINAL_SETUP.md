@@ -124,3 +124,4 @@ git push -u origin main
 - Netlify 배포: 자동 (Git push 시)
 - 사이트 URL: `https://app-market-analytics.netlify.app`
 
+
