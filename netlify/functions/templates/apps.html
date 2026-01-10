@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <div>
+        <h2 class="text-3xl font-bold text-notion-text mb-2">앱 관리</h2>
+        <p class="text-notion-textLight">앱 데이터를 추가하고 관리하세요</p>
+    </div>
+    
+    <div class="flex gap-3 mb-6">
+        <button onclick="showAddAppModal()" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">
+            앱 추가
+        </button>
+        <button onclick="showUploadModal()" class="px-4 py-2 bg-white border border-notion-border text-notion-text rounded-md hover:bg-notion-sidebar transition-colors">
+            CSV 업로드
+        </button>
+    </div>
+    
+    <div id="apps-list" class="space-y-3">
+        <p class="text-notion-textLight">로딩 중...</p>
+    </div>
+</div>
+
+<!-- 앱 추가 모달 -->
+<div id="add-app-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="event.target === this && closeModal('add-app-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-notion-border flex justify-between items-center">
+            <h3 class="text-xl font-semibold text-notion-text">앱 추가</h3>
+            <span class="text-2xl cursor-pointer text-notion-textLight hover:text-notion-text" onclick="closeModal('add-app-modal')">&times;</span>
+        </div>
+        <form id="add-app-form" class="p-6 space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">앱 이름 *</label>
+                <input type="text" name="name" required class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">카테고리</label>
+                <input type="text" name="category" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-notion-text mb-2">평점 (0-5)</label>
+                    <input type="number" name="rating" step="0.1" min="0" max="5" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-notion-text mb-2">리뷰 수</label>
+                    <input type="number" name="review_count" min="0" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">가격 모델</label>
+                <select name="price_model" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                    <option value="">선택</option>
+                    <option value="free">무료</option>
+                    <option value="paid">유료</option>
+                    <option value="subscription">구독</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">최근 업데이트</label>
+                <input type="date" name="last_update" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-notion-text mb-2">설명</label>
+                <textarea name="description" rows="3" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue"></textarea>
+            </div>
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="closeModal('add-app-modal')" class="px-4 py-2 border border-notion-border rounded-md hover:bg-notion-sidebar transition-colors">취소</button>
+                <button type="submit" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">추가</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CSV 업로드 모달 -->
+<div id="upload-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="event.target === this && closeModal('upload-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-notion-border flex justify-between items-center">
+            <h3 class="text-xl font-semibold text-notion-text">CSV 업로드</h3>
+            <span class="text-2xl cursor-pointer text-notion-textLight hover:text-notion-text" onclick="closeModal('upload-modal')">&times;</span>
+        </div>
+        <div class="p-6">
+            <p class="text-sm text-notion-textLight mb-4">CSV 형식: name, category, rating, review_count, price_model, last_update, description</p>
+            <form id="upload-form" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-notion-text mb-2">CSV 파일 선택</label>
+                    <input type="file" name="file" accept=".csv" required class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                </div>
+                <div id="upload-result"></div>
+                <div class="flex justify-end gap-3">
+                    <button type="button" onclick="closeModal('upload-modal')" class="px-4 py-2 border border-notion-border rounded-md hover:bg-notion-sidebar transition-colors">취소</button>
+                    <button type="submit" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">업로드</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 앱 상세 모달 -->
+<div id="app-detail-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50" onclick="event.target === this && closeModal('app-detail-modal')">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+        <div class="p-6 border-b border-notion-border flex justify-between items-center">
+            <h3 class="text-xl font-semibold text-notion-text">앱 상세</h3>
+            <span class="text-2xl cursor-pointer text-notion-textLight hover:text-notion-text" onclick="closeModal('app-detail-modal')">&times;</span>
+        </div>
+        <div id="app-detail-content" class="p-6"></div>
+    </div>
+</div>
+
+<script src="/static/apps.js"></script>
+<script>
+function showModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    document.getElementById(modalId).classList.add('flex');
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    document.getElementById(modalId).classList.remove('flex');
+}
+
+window.showAddAppModal = showAddAppModal;
+window.showUploadModal = showUploadModal;
+</script>
+{% endblock %}

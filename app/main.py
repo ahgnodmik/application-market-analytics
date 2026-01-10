@@ -54,24 +54,43 @@ print(f"[APP INIT] LAMBDA_TASK_ROOT: {LAMBDA_TASK_ROOT}")
 print(f"[APP INIT] Static dir: {static_dir} (exists: {os.path.exists(static_dir)})")
 print(f"[APP INIT] Templates dir: {templates_dir} (exists: {os.path.exists(templates_dir)})")
 
-# 정적 파일 마운트
+# 정적 파일 마운트 (Netlify Functions 환경 고려)
 static_mounted = False
-if os.path.exists(static_dir):
-    try:
-        app.mount("/static", StaticFiles(directory=static_dir), name="static")
-        print(f"[APP INIT] Static files mounted from: {static_dir}")
-        static_mounted = True
-    except Exception as e:
-        print(f"[APP INIT] Error mounting static files: {e}")
+possible_static_dirs = [
+    os.path.join(current_dir, "..", "..", "netlify", "functions", "static"),  # netlify/functions/static (빌드 시 복사됨)
+    os.path.join(project_root, "netlify", "functions", "static"),  # netlify/functions/static
+    static_dir,  # 프로젝트 루트/static
+    "/var/task/static",  # Netlify Functions 기본 경로
+    "/var/task/netlify/functions/static",  # Netlify Functions 패키징 경로
+]
+
+for sd in possible_static_dirs:
+    if sd and os.path.exists(sd):
+        try:
+            app.mount("/static", StaticFiles(directory=sd), name="static")
+            print(f"[APP INIT] Static files mounted from: {sd}")
+            static_mounted = True
+            static_dir = sd  # 실제 마운트된 경로 저장
+            break
+        except Exception as e:
+            print(f"[APP INIT] Error mounting static files from {sd}: {e}")
+            continue
+
+if not static_mounted:
+    print(f"[APP INIT] Warning: Could not mount static files from any location")
 
 # 템플릿 디렉토리 설정 (Netlify Functions 환경 고려)
+# Netlify Functions에서는 netlify/functions/templates에 복사됨
 templates = None
 possible_template_dirs = [
+    os.path.join(current_dir, "..", "..", "netlify", "functions", "templates"),  # netlify/functions/templates (빌드 시 복사됨)
+    os.path.join(project_root, "netlify", "functions", "templates"),  # netlify/functions/templates
     templates_dir,  # 프로젝트 루트/templates
     os.path.join(current_dir, "..", "templates"),  # app/../templates
     os.path.join(project_root, "templates"),  # 재확인
     "templates",  # 상대 경로
     "/var/task/templates",  # Netlify Functions 기본 경로
+    "/var/task/netlify/functions/templates",  # Netlify Functions 패키징 경로
     "/opt/python/templates",  # Lambda 기본 경로
     os.path.join(os.getcwd(), "templates"),  # 현재 작업 디렉토리
 ]
