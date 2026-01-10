@@ -384,6 +384,16 @@ def test_endpoint():
     """간단한 테스트 엔드포인트"""
     return {"message": "서버가 정상적으로 작동 중입니다", "timestamp": "2024-01-10"}
 
+# 앱 시작 완료 로그
+print("=" * 60)
+print("🚀 Application Market Analytics Started Successfully!")
+print(f"   FastAPI: {app.title} v{app.version}")
+print(f"   Routes: {len(app.routes)}")
+print(f"   Static files mounted: {static_mounted}")
+print(f"   Templates loaded: {templates is not None}")
+print(f"   PORT: {os.getenv('PORT', 'NOT SET')}")
+print("=" * 60)
+
 # 앱 시작 시 로그 출력
 if __name__ != "__main__":
     print("=" * 50)
