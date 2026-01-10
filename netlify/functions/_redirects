@@ -1,0 +1,2 @@
+# Netlify Functions에서 정적 파일을 직접 서빙하기 위한 리다이렉트
+# 이 파일은 netlify.toml의 redirects 설정과 함께 작동합니다
