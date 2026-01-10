@@ -10,8 +10,17 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./market_analytics.db")
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# SQLite인 경우
+# SQLite인 경우 - Netlify Functions 환경 고려
 if DATABASE_URL.startswith("sqlite"):
+    # Netlify Functions 환경 확인 (/tmp 디렉토리 사용 가능)
+    if os.path.exists("/tmp") and not DATABASE_URL.startswith("sqlite:///:memory:"):
+        # Netlify Functions 환경: /tmp 디렉토리 사용
+        db_path = "/tmp/market_analytics.db"
+        DATABASE_URL = f"sqlite:///{db_path}"
+    elif DATABASE_URL == "sqlite:///./market_analytics.db":
+        # 로컬 개발 환경: 상대 경로 사용
+        pass
+    
     engine = create_engine(
         DATABASE_URL, connect_args={"check_same_thread": False}
     )

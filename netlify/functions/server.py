@@ -13,10 +13,15 @@ project_root = os.path.abspath(os.path.join(current_dir, '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-# 환경 변수 로드
+# 환경 변수 로드 (로컬 개발 환경에서만)
+# Netlify에서는 환경 변수를 대시보드에서 설정해야 함
 from dotenv import load_dotenv
-load_dotenv(os.path.join(project_root, '.env'))
-load_dotenv(os.path.join(project_root, '.env.local'))
+env_file = os.path.join(project_root, '.env')
+env_local_file = os.path.join(project_root, '.env.local')
+if os.path.exists(env_file):
+    load_dotenv(env_file)
+if os.path.exists(env_local_file):
+    load_dotenv(env_local_file)
 
 from mangum import Mangum
 from app.main import app
