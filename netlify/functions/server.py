@@ -13,6 +13,13 @@ project_root = os.path.abspath(os.path.join(current_dir, '../..'))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+# 디버깅 정보 출력 (Netlify Functions 로그에서 확인 가능)
+print(f"[Netlify Functions] Server.py location: {__file__}")
+print(f"[Netlify Functions] Current dir: {current_dir}")
+print(f"[Netlify Functions] Project root: {project_root}")
+print(f"[Netlify Functions] Static exists: {os.path.exists(os.path.join(project_root, 'static'))}")
+print(f"[Netlify Functions] Templates exists: {os.path.exists(os.path.join(project_root, 'templates'))}")
+
 # 환경 변수 로드 (로컬 개발 환경에서만)
 # Netlify에서는 환경 변수를 대시보드에서 설정해야 함
 from dotenv import load_dotenv
