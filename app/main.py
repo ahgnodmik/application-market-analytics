@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 import os
@@ -118,8 +118,9 @@ def render_error_page(message: str, details: str = "") -> HTMLResponse:
                 <h1 class="text-3xl font-bold text-red-600 mb-4">⚠️ 오류 발생</h1>
                 <p class="text-gray-700 text-lg mb-4">{message}</p>
                 {f'<pre class="bg-gray-100 p-4 rounded text-sm overflow-auto"><code>{details}</code></pre>' if details else ''}
-                <div class="mt-6">
-                    <a href="/health" class="text-blue-600 hover:underline">Health Check 확인</a>
+                <div class="mt-6 space-y-2">
+                    <a href="/health" class="text-blue-600 hover:underline block">Health Check 확인</a>
+                    <a href="/api/apps/" class="text-blue-600 hover:underline block">API 테스트</a>
                 </div>
             </div>
         </div>
@@ -129,14 +130,46 @@ def render_error_page(message: str, details: str = "") -> HTMLResponse:
     return HTMLResponse(content=error_html, status_code=500)
 
 
+def render_simple_dashboard() -> HTMLResponse:
+    """템플릿 없이 간단한 대시보드 렌더링"""
+    html_content = """
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Market Analytics</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50">
+        <nav class="bg-white border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-6 py-4">
+                <h1 class="text-2xl font-bold">📊 Market Analytics</h1>
+            </div>
+        </nav>
+        <main class="max-w-7xl mx-auto px-6 py-8">
+            <div class="bg-white rounded-lg shadow p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">서비스 준비 중</h2>
+                <p class="text-gray-600 mb-4">템플릿 파일을 찾을 수 없습니다. Functions 로그를 확인해주세요.</p>
+                <div class="space-y-2">
+                    <a href="/health" class="text-blue-600 hover:underline block">Health Check</a>
+                    <a href="/api/apps/" class="text-blue-600 hover:underline block">API 엔드포인트</a>
+                </div>
+            </div>
+        </main>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
+
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request):
     """메인 대시보드"""
     try:
         if templates is None:
-            error_msg = "템플릿을 로드할 수 없습니다."
-            details = f"Project root: {project_root}\nTemplates dir: {templates_dir}\nCurrent dir: {current_dir}"
-            return render_error_page(error_msg, details)
+            print("[ROOT] Templates not loaded, rendering simple dashboard")
+            return render_simple_dashboard()
         
         return templates.TemplateResponse("dashboard.html", {"request": request})
     except Exception as e:
@@ -152,7 +185,7 @@ async def apps_page(request: Request):
     """앱 목록 페이지"""
     try:
         if templates is None:
-            return render_error_page("템플릿을 로드할 수 없습니다.")
+            return render_simple_dashboard()
         return templates.TemplateResponse("apps.html", {"request": request})
     except Exception as e:
         import traceback
@@ -165,7 +198,7 @@ async def analysis_page(request: Request):
     """분석 페이지"""
     try:
         if templates is None:
-            return render_error_page("템플릿을 로드할 수 없습니다.")
+            return render_simple_dashboard()
         return templates.TemplateResponse("analysis.html", {"request": request})
     except Exception as e:
         import traceback
@@ -178,7 +211,7 @@ async def report_page(request: Request):
     """AI 리포트 페이지"""
     try:
         if templates is None:
-            return render_error_page("템플릿을 로드할 수 없습니다.")
+            return render_simple_dashboard()
         return templates.TemplateResponse("report.html", {"request": request})
     except Exception as e:
         import traceback
@@ -204,10 +237,13 @@ def health_check():
     path_status = {}
     for name, path in possible_paths.items():
         if path and path != 'Not set':
-            path_status[name] = {
-                "path": path,
-                "exists": os.path.exists(path) if isinstance(path, str) else False
-            }
+            try:
+                path_status[name] = {
+                    "path": path,
+                    "exists": os.path.exists(path) if isinstance(path, str) else False
+                }
+            except:
+                path_status[name] = {"path": path, "exists": False, "error": "Cannot check"}
         else:
             path_status[name] = {"path": path, "exists": False}
     
@@ -225,26 +261,55 @@ def health_check():
     template_status = []
     for td in template_dirs_to_check:
         if td:
-            abs_td = os.path.abspath(td) if not os.path.isabs(td) else td
-            exists = os.path.exists(abs_td) if abs_td else False
-            template_status.append({
-                "path": abs_td,
-                "exists": exists
-            })
+            try:
+                abs_td = os.path.abspath(td) if not os.path.isabs(td) else td
+                exists = os.path.exists(abs_td) if abs_td else False
+                template_status.append({
+                    "path": abs_td,
+                    "exists": exists
+                })
+            except Exception as e:
+                template_status.append({
+                    "path": td,
+                    "exists": False,
+                    "error": str(e)
+                })
     
     # 파일 목록 확인
     file_list = {}
-    if templates_dir and os.path.exists(templates_dir):
+    if templates_dir:
         try:
-            file_list["templates"] = os.listdir(templates_dir)
-        except:
-            file_list["templates"] = "Cannot read"
+            if os.path.exists(templates_dir):
+                file_list["templates"] = os.listdir(templates_dir)
+            else:
+                file_list["templates"] = "Directory does not exist"
+        except Exception as e:
+            file_list["templates"] = f"Cannot read: {str(e)}"
     
-    if static_dir and os.path.exists(static_dir):
+    if static_dir:
         try:
-            file_list["static"] = os.listdir(static_dir)
-        except:
-            file_list["static"] = "Cannot read"
+            if os.path.exists(static_dir):
+                file_list["static"] = os.listdir(static_dir)
+            else:
+                file_list["static"] = "Directory does not exist"
+        except Exception as e:
+            file_list["static"] = f"Cannot read: {str(e)}"
+    
+    # 현재 디렉토리 전체 구조 확인 (최상위 20개만)
+    try:
+        cwd_contents = []
+        if os.path.exists(os.getcwd()):
+            items = list(os.listdir(os.getcwd()))[:20]
+            for item in items:
+                item_path = os.path.join(os.getcwd(), item)
+                cwd_contents.append({
+                    "name": item,
+                    "is_dir": os.path.isdir(item_path),
+                    "exists": True
+                })
+        file_list["cwd_contents"] = cwd_contents
+    except Exception as e:
+        file_list["cwd_contents"] = f"Error: {str(e)}"
     
     return {
         "status": "ok" if templates is not None else "error",
@@ -253,5 +318,11 @@ def health_check():
         "paths": path_status,
         "template_dirs_checked": template_status,
         "files": file_list,
-        "sys_path_first_3": sys.path[:3] if 'sys' in dir() else []
+        "sys_path_first_5": sys.path[:5] if 'sys' in dir() else []
     }
+
+
+@app.get("/test")
+def test_endpoint():
+    """간단한 테스트 엔드포인트"""
+    return {"message": "서버가 정상적으로 작동 중입니다", "timestamp": "2024-01-10"}
