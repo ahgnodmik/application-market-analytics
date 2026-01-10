@@ -384,15 +384,33 @@ def test_endpoint():
     """간단한 테스트 엔드포인트"""
     return {"message": "서버가 정상적으로 작동 중입니다", "timestamp": "2024-01-10"}
 
-# 앱 시작 완료 로그
-print("=" * 60)
-print("🚀 Application Market Analytics Started Successfully!")
-print(f"   FastAPI: {app.title} v{app.version}")
-print(f"   Routes: {len(app.routes)}")
-print(f"   Static files mounted: {static_mounted}")
-print(f"   Templates loaded: {templates is not None}")
-print(f"   PORT: {os.getenv('PORT', 'NOT SET')}")
-print("=" * 60)
+# 앱 시작 완료 로그 (모듈 로드 시 실행)
+def print_startup_info():
+    """앱 시작 정보 출력"""
+    import sys
+    sys.stdout.flush()
+    print("=" * 60)
+    print("🚀 Application Market Analytics Initialized!")
+    print(f"   FastAPI: {app.title} v{app.version}")
+    print(f"   Routes: {len(app.routes)}")
+    print(f"   Static files mounted: {static_mounted}")
+    print(f"   Templates loaded: {templates is not None}")
+    print(f"   PORT: {os.getenv('PORT', 'NOT SET')}")
+    print("=" * 60)
+    sys.stdout.flush()
+
+# 모듈 로드 시 실행
+print_startup_info()
+
+# FastAPI startup event
+@app.on_event("startup")
+async def startup_event():
+    """앱 시작 시 실행"""
+    import sys
+    sys.stdout.flush()
+    print("✅ FastAPI application started successfully!")
+    print(f"   Listening on 0.0.0.0:{os.getenv('PORT', '8000')}")
+    sys.stdout.flush()
 
 # 앱 시작 시 로그 출력
 if __name__ != "__main__":
