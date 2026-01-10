@@ -55,13 +55,14 @@ print(f"[APP INIT] Static dir: {static_dir} (exists: {os.path.exists(static_dir)
 print(f"[APP INIT] Templates dir: {templates_dir} (exists: {os.path.exists(templates_dir)})")
 
 # 정적 파일 마운트 (Netlify Functions 환경 고려)
+# 현재 파일 기준으로 상위 디렉토리에서 static 찾기
 static_mounted = False
 possible_static_dirs = [
-    os.path.join(current_dir, "..", "..", "netlify", "functions", "static"),  # netlify/functions/static (빌드 시 복사됨)
-    os.path.join(project_root, "netlify", "functions", "static"),  # netlify/functions/static
-    static_dir,  # 프로젝트 루트/static
-    "/var/task/static",  # Netlify Functions 기본 경로
-    "/var/task/netlify/functions/static",  # Netlify Functions 패키징 경로
+    os.path.join(current_dir, "..", "static"),  # app/../static (로컬) 또는 netlify/functions/static (Functions)
+    os.path.join(current_dir, "..", "..", "static"),  # app/../../static (프로젝트 루트)
+    os.path.join(project_root, "static"),  # 프로젝트 루트/static
+    static_dir,  # 프로젝트 루트/static (재확인)
+    "/var/task/static",  # Netlify Functions 기본 경로 (/var/task = Functions 루트)
 ]
 
 for sd in possible_static_dirs:
@@ -80,17 +81,21 @@ if not static_mounted:
     print(f"[APP INIT] Warning: Could not mount static files from any location")
 
 # 템플릿 디렉토리 설정 (Netlify Functions 환경 고려)
-# Netlify Functions에서는 netlify/functions/templates에 복사됨
+# Netlify Functions에서는 server.py와 같은 디렉토리에 templates/가 있음 (빌드 시 복사됨)
+# server.py 위치: netlify/functions/server.py
+# app/main.py 위치: netlify/functions/app/main.py (빌드 시 복사됨)
+# templates 위치: netlify/functions/templates/ (빌드 시 복사됨)
 templates = None
+
+# 현재 파일 기준으로 상위 디렉토리에서 templates 찾기
+# app/main.py -> netlify/functions/app/main.py -> netlify/functions/templates/
 possible_template_dirs = [
-    os.path.join(current_dir, "..", "..", "netlify", "functions", "templates"),  # netlify/functions/templates (빌드 시 복사됨)
-    os.path.join(project_root, "netlify", "functions", "templates"),  # netlify/functions/templates
-    templates_dir,  # 프로젝트 루트/templates
-    os.path.join(current_dir, "..", "templates"),  # app/../templates
-    os.path.join(project_root, "templates"),  # 재확인
+    os.path.join(current_dir, "..", "templates"),  # app/../templates (로컬) 또는 netlify/functions/templates (Functions)
+    os.path.join(current_dir, "..", "..", "templates"),  # app/../../templates (프로젝트 루트)
+    os.path.join(project_root, "templates"),  # 프로젝트 루트/templates
+    templates_dir,  # 프로젝트 루트/templates (재확인)
     "templates",  # 상대 경로
-    "/var/task/templates",  # Netlify Functions 기본 경로
-    "/var/task/netlify/functions/templates",  # Netlify Functions 패키징 경로
+    "/var/task/templates",  # Netlify Functions 기본 경로 (/var/task = Functions 루트)
     "/opt/python/templates",  # Lambda 기본 경로
     os.path.join(os.getcwd(), "templates"),  # 현재 작업 디렉토리
 ]
