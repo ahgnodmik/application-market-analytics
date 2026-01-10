@@ -10,7 +10,7 @@
   publish = "."
 
 [build.environment]
-  PYTHON_VERSION = "3.9"
+  PYTHON_VERSION = "3.10"
 
 # 모든 요청을 서버리스 함수로 라우팅 (FastAPI가 모든 라우팅 처리)
 # server 함수는 netlify/functions/server.py 파일임
@@ -22,7 +22,7 @@
 
 # 환경 변수
 [context.production.environment]
-  PYTHON_VERSION = "3.9"
+  PYTHON_VERSION = "3.10"
 
 [context.deploy-preview.environment]
-  PYTHON_VERSION = "3.9"
+  PYTHON_VERSION = "3.10"
