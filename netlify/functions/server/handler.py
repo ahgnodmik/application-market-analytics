@@ -84,3 +84,4 @@ except Exception as e:
 
 # Netlify Functions는 이 handler를 자동으로 인식합니다
 # 함수 이름은 디렉토리 이름 (server)
+# 파일 이름은 handler.py여야 합니다
