@@ -8,21 +8,28 @@ import sys
 from app.database import engine, Base
 from app.routers import apps, analysis, upload, report
 
-# 데이터베이스 테이블 생성 (Netlify Functions 환경에서도 안전하게)
+# 데이터베이스 테이블 생성 (Railway/Netlify 등 모든 환경에서 안전하게)
 try:
     Base.metadata.create_all(bind=engine)
+    print(f"[APP INIT] ✅ Database tables created successfully")
 except Exception as e:
-    # Netlify Functions 환경에서 실패할 수 있음 (읽기 전용 파일 시스템)
-    # 이 경우 메모리 DB로 fallback하거나 외부 DB 사용 권장
-    print(f"Warning: Database initialization failed: {e}")
+    # 읽기 전용 파일 시스템 등에서 실패할 수 있음
+    print(f"[APP INIT] ⚠️ Warning: Database initialization failed: {e}")
+    print(f"[APP INIT] Continuing without database initialization...")
 
 app = FastAPI(title="Application Market Analytics", version="1.0.0")
 
-# 라우터 등록
-app.include_router(apps.router)
-app.include_router(analysis.router)
-app.include_router(upload.router)
-app.include_router(report.router)
+# 라우터 등록 (에러가 발생해도 앱이 시작되도록)
+try:
+    app.include_router(apps.router)
+    app.include_router(analysis.router)
+    app.include_router(upload.router)
+    app.include_router(report.router)
+    print(f"[APP INIT] ✅ All routers registered successfully")
+except Exception as e:
+    print(f"[APP INIT] ⚠️ Warning: Router registration failed: {e}")
+    import traceback
+    traceback.print_exc()
 
 # 정적 파일 및 템플릿 경로 (Netlify Functions 환경 고려)
 # 프로젝트 루트 찾기 - 여러 경우 고려
@@ -31,17 +38,20 @@ current_dir = os.path.dirname(current_file)
 
 # Netlify Functions 환경: netlify/functions/server.py -> app/main.py
 # 로컬 환경: app/main.py
-# 프로젝트 루트 찾기 (app 디렉토리의 부모)
+# 프로젝트 루트 찾기 (Railway 환경 고려)
 if current_dir.endswith("app"):
     project_root = os.path.dirname(current_dir)
 else:
-    # 다른 구조를 고려
     project_root = os.path.dirname(current_dir)
 
+# Railway 환경에서는 현재 작업 디렉토리가 프로젝트 루트
 # Lambda/Netlify Functions 환경에서의 경로 확인
 LAMBDA_TASK_ROOT = os.environ.get('LAMBDA_TASK_ROOT', '')
 if LAMBDA_TASK_ROOT:
     project_root = LAMBDA_TASK_ROOT
+elif os.path.exists(os.path.join(os.getcwd(), "app")) and os.path.exists(os.path.join(os.getcwd(), "templates")):
+    # Railway 등에서 cwd가 프로젝트 루트인 경우
+    project_root = os.getcwd()
 
 static_dir = os.path.join(project_root, "static")
 templates_dir = os.path.join(project_root, "templates")
