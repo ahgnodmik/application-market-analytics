@@ -84,3 +84,7 @@ fonts/
 # Exclude parent directory files (prevent submodule issues)
 ../Desktop/
 ../.gitmodules
+netlify/functions/templates/*
+netlify/functions/static/*
+!netlify/functions/templates/.gitkeep
+!netlify/functions/static/.gitkeep
