@@ -4,7 +4,7 @@
   # 빌드 명령어: 템플릿, 정적 파일, app 디렉토리를 Functions 디렉토리로 복사
   # Functions 패키징 시 netlify/functions/ 디렉토리만 포함되므로,
   # 프로젝트 루트의 app/, templates/, static/를 복사해야 함
-  command = "mkdir -p netlify/functions/templates netlify/functions/static netlify/functions/app && cp -r app/* netlify/functions/app/ 2>/dev/null || true && cp -r templates/* netlify/functions/templates/ 2>/dev/null || true && cp -r static/* netlify/functions/static/ 2>/dev/null || true"
+  command = "mkdir -p netlify/functions/templates netlify/functions/static netlify/functions/app && cp -r app/* netlify/functions/app/ 2>/dev/null || true && cp -r templates/* netlify/functions/templates/ 2>/dev/null || true && cp -r static/* netlify/functions/static/ 2>/dev/null || true && echo '✅ Build command completed'"
   # 서버리스 함수 디렉토리
   functions = "netlify/functions"
   # 정적 파일 디렉토리 (저장소 루트 기준)
