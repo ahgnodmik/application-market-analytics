@@ -1,8 +1,8 @@
-# 🚂 Railway 배포 가이드 (권장)
+# 🚂 Railway 배포 가이드
 
-## 왜 Railway인가?
+## ✅ Railway로 전환 완료!
 
-Vercel에서 계속 빌드 실패가 발생하므로, **Railway가 더 간단하고 안정적**입니다:
+Railway가 Vercel보다 **훨씬 간단하고 안정적**입니다:
 
 ✅ **간단한 설정** - `Procfile` 하나면 끝
 ✅ **Python 완벽 지원** - FastAPI 그대로 실행
