@@ -11,7 +11,7 @@ import os
 # - netlify/functions/ 디렉토리에 app/, templates/, static/이 있음 (빌드 시 복사됨)
 current_dir = os.path.dirname(os.path.abspath(__file__))  # netlify/functions/server
 functions_root = os.path.dirname(current_dir)  # netlify/functions
-project_root = os.path.dirname(functions_root)  # 프로젝트 루트
+project_root = os.path.dirname(os.path.dirname(functions_root))  # netlify의 부모 = 프로젝트 루트
 
 # Functions 디렉토리에 app이 있으면 우선 사용 (빌드 시 복사됨)
 functions_app_dir = os.path.join(functions_root, 'app')
