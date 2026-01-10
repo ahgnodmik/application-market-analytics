@@ -100,5 +100,12 @@ async def report_page(request: Request):
 @app.get("/health")
 def health_check():
     """헬스 체크"""
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "static_dir_exists": os.path.exists(static_dir),
+        "templates_dir_exists": os.path.exists(templates_dir),
+        "static_dir": static_dir,
+        "templates_dir": templates_dir,
+        "project_root": project_root
+    }
 
