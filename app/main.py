@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi import Request
 import os
@@ -38,25 +38,31 @@ else:
     # 다른 구조를 고려
     project_root = os.path.dirname(current_dir)
 
+# Lambda/Netlify Functions 환경에서의 경로 확인
+LAMBDA_TASK_ROOT = os.environ.get('LAMBDA_TASK_ROOT', '')
+if LAMBDA_TASK_ROOT:
+    project_root = LAMBDA_TASK_ROOT
+
 static_dir = os.path.join(project_root, "static")
 templates_dir = os.path.join(project_root, "templates")
 
 # 디렉토리 존재 확인 및 로깅
-print(f"Current file: {current_file}")
-print(f"Current dir: {current_dir}")
-print(f"Project root: {project_root}")
-print(f"Static dir exists: {os.path.exists(static_dir)} ({static_dir})")
-print(f"Templates dir exists: {os.path.exists(templates_dir)} ({templates_dir})")
+print(f"[APP INIT] Current file: {current_file}")
+print(f"[APP INIT] Current dir: {current_dir}")
+print(f"[APP INIT] Project root: {project_root}")
+print(f"[APP INIT] LAMBDA_TASK_ROOT: {LAMBDA_TASK_ROOT}")
+print(f"[APP INIT] Static dir: {static_dir} (exists: {os.path.exists(static_dir)})")
+print(f"[APP INIT] Templates dir: {templates_dir} (exists: {os.path.exists(templates_dir)})")
 
 # 정적 파일 마운트
+static_mounted = False
 if os.path.exists(static_dir):
     try:
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
-        print(f"Static files mounted from: {static_dir}")
+        print(f"[APP INIT] Static files mounted from: {static_dir}")
+        static_mounted = True
     except Exception as e:
-        print(f"Error mounting static files: {e}")
-else:
-    print(f"Warning: Static directory not found at {static_dir}")
+        print(f"[APP INIT] Error mounting static files: {e}")
 
 # 템플릿 디렉토리 설정 (Netlify Functions 환경 고려)
 templates = None
@@ -66,28 +72,61 @@ possible_template_dirs = [
     os.path.join(project_root, "templates"),  # 재확인
     "templates",  # 상대 경로
     "/var/task/templates",  # Netlify Functions 기본 경로
+    "/opt/python/templates",  # Lambda 기본 경로
+    os.path.join(os.getcwd(), "templates"),  # 현재 작업 디렉토리
 ]
 
 for template_path in possible_template_dirs:
-    abs_path = os.path.abspath(template_path) if not os.path.isabs(template_path) else template_path
-    if os.path.exists(abs_path):
+    abs_path = os.path.abspath(template_path) if template_path and not os.path.isabs(template_path) else template_path
+    if abs_path and os.path.exists(abs_path):
         try:
             templates = Jinja2Templates(directory=abs_path)
-            print(f"Templates loaded from: {abs_path}")
+            print(f"[APP INIT] Templates loaded from: {abs_path}")
             break
         except Exception as e:
-            print(f"Error loading templates from {abs_path}: {e}")
+            print(f"[APP INIT] Error loading templates from {abs_path}: {e}")
             continue
 
 if templates is None:
     # 최종 fallback: 현재 디렉토리 기준
     try:
+        cwd = os.getcwd()
+        print(f"[APP INIT] Attempting fallback with cwd: {cwd}")
         templates = Jinja2Templates(directory="templates")
-        print("Templates loaded from default: templates (fallback)")
+        print("[APP INIT] Templates loaded from default: templates (fallback)")
     except Exception as e:
-        print(f"CRITICAL: Failed to load templates: {e}")
+        print(f"[APP INIT] CRITICAL: Failed to load templates: {e}")
         # 빈 템플릿 객체로 초기화하여 앱이 시작되도록 함
-        templates = Jinja2Templates(directory=os.getcwd())
+        # 하지만 실제로는 에러 페이지를 반환하도록 함
+        pass
+
+
+def render_error_page(message: str, details: str = "") -> HTMLResponse:
+    """에러 페이지 렌더링"""
+    error_html = f"""
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>오류 - Market Analytics</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+    </head>
+    <body class="bg-gray-50">
+        <div class="max-w-4xl mx-auto px-4 py-16">
+            <div class="bg-white rounded-lg shadow-lg p-8">
+                <h1 class="text-3xl font-bold text-red-600 mb-4">⚠️ 오류 발생</h1>
+                <p class="text-gray-700 text-lg mb-4">{message}</p>
+                {f'<pre class="bg-gray-100 p-4 rounded text-sm overflow-auto"><code>{details}</code></pre>' if details else ''}
+                <div class="mt-6">
+                    <a href="/health" class="text-blue-600 hover:underline">Health Check 확인</a>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=error_html, status_code=500)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -95,11 +134,17 @@ async def read_root(request: Request):
     """메인 대시보드"""
     try:
         if templates is None:
-            return HTMLResponse(content="<h1>템플릿을 로드할 수 없습니다. Functions 로그를 확인하세요.</h1>", status_code=500)
+            error_msg = "템플릿을 로드할 수 없습니다."
+            details = f"Project root: {project_root}\nTemplates dir: {templates_dir}\nCurrent dir: {current_dir}"
+            return render_error_page(error_msg, details)
+        
         return templates.TemplateResponse("dashboard.html", {"request": request})
     except Exception as e:
-        print(f"Error rendering dashboard: {e}")
-        return HTMLResponse(content=f"<h1>오류 발생: {str(e)}</h1>", status_code=500)
+        import traceback
+        error_details = traceback.format_exc()
+        print(f"[ERROR] Dashboard render error: {e}")
+        print(f"[ERROR] Traceback: {error_details}")
+        return render_error_page(f"대시보드 렌더링 오류: {str(e)}", error_details)
 
 
 @app.get("/apps", response_class=HTMLResponse)
@@ -107,11 +152,12 @@ async def apps_page(request: Request):
     """앱 목록 페이지"""
     try:
         if templates is None:
-            return HTMLResponse(content="<h1>템플릿을 로드할 수 없습니다.</h1>", status_code=500)
+            return render_error_page("템플릿을 로드할 수 없습니다.")
         return templates.TemplateResponse("apps.html", {"request": request})
     except Exception as e:
-        print(f"Error rendering apps page: {e}")
-        return HTMLResponse(content=f"<h1>오류 발생: {str(e)}</h1>", status_code=500)
+        import traceback
+        print(f"[ERROR] Apps page render error: {e}")
+        return render_error_page(f"앱 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
 
 
 @app.get("/analysis", response_class=HTMLResponse)
@@ -119,11 +165,12 @@ async def analysis_page(request: Request):
     """분석 페이지"""
     try:
         if templates is None:
-            return HTMLResponse(content="<h1>템플릿을 로드할 수 없습니다.</h1>", status_code=500)
+            return render_error_page("템플릿을 로드할 수 없습니다.")
         return templates.TemplateResponse("analysis.html", {"request": request})
     except Exception as e:
-        print(f"Error rendering analysis page: {e}")
-        return HTMLResponse(content=f"<h1>오류 발생: {str(e)}</h1>", status_code=500)
+        import traceback
+        print(f"[ERROR] Analysis page render error: {e}")
+        return render_error_page(f"분석 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
 
 
 @app.get("/report", response_class=HTMLResponse)
@@ -131,31 +178,38 @@ async def report_page(request: Request):
     """AI 리포트 페이지"""
     try:
         if templates is None:
-            return HTMLResponse(content="<h1>템플릿을 로드할 수 없습니다.</h1>", status_code=500)
+            return render_error_page("템플릿을 로드할 수 없습니다.")
         return templates.TemplateResponse("report.html", {"request": request})
     except Exception as e:
-        print(f"Error rendering report page: {e}")
-        return HTMLResponse(content=f"<h1>오류 발생: {str(e)}</h1>", status_code=500)
+        import traceback
+        print(f"[ERROR] Report page render error: {e}")
+        return render_error_page(f"리포트 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
 
 
 @app.get("/health")
 def health_check():
-    """헬스 체크"""
+    """헬스 체크 - 상세 정보 포함"""
     import os
     possible_paths = {
         "project_root": project_root,
         "static_dir": static_dir,
         "templates_dir": templates_dir,
         "current_dir": current_dir,
-        "current_file": current_file
+        "current_file": current_file,
+        "cwd": os.getcwd(),
+        "LAMBDA_TASK_ROOT": os.environ.get('LAMBDA_TASK_ROOT', 'Not set'),
+        "_HANDLER": os.environ.get('_HANDLER', 'Not set'),
     }
     
     path_status = {}
     for name, path in possible_paths.items():
-        path_status[name] = {
-            "path": path,
-            "exists": os.path.exists(path) if path else False
-        }
+        if path and path != 'Not set':
+            path_status[name] = {
+                "path": path,
+                "exists": os.path.exists(path) if isinstance(path, str) else False
+            }
+        else:
+            path_status[name] = {"path": path, "exists": False}
     
     # 템플릿 디렉토리 확인
     template_dirs_to_check = [
@@ -163,23 +217,41 @@ def health_check():
         os.path.join(current_dir, "..", "templates"),
         os.path.join(project_root, "templates"),
         "templates",
-        "/var/task/templates"
+        "/var/task/templates",
+        "/opt/python/templates",
+        os.path.join(os.getcwd(), "templates")
     ]
     
     template_status = []
     for td in template_dirs_to_check:
-        abs_td = os.path.abspath(td) if td and not os.path.isabs(td) else td
-        template_status.append({
-            "path": abs_td,
-            "exists": os.path.exists(abs_td) if abs_td else False
-        })
+        if td:
+            abs_td = os.path.abspath(td) if not os.path.isabs(td) else td
+            exists = os.path.exists(abs_td) if abs_td else False
+            template_status.append({
+                "path": abs_td,
+                "exists": exists
+            })
+    
+    # 파일 목록 확인
+    file_list = {}
+    if templates_dir and os.path.exists(templates_dir):
+        try:
+            file_list["templates"] = os.listdir(templates_dir)
+        except:
+            file_list["templates"] = "Cannot read"
+    
+    if static_dir and os.path.exists(static_dir):
+        try:
+            file_list["static"] = os.listdir(static_dir)
+        except:
+            file_list["static"] = "Cannot read"
     
     return {
         "status": "ok" if templates is not None else "error",
         "templates_loaded": templates is not None,
+        "static_mounted": static_mounted,
         "paths": path_status,
         "template_dirs_checked": template_status,
-        "cwd": os.getcwd(),
-        "sys_path": sys.path[:3] if 'sys' in dir() else []
+        "files": file_list,
+        "sys_path_first_3": sys.path[:3] if 'sys' in dir() else []
     }
-
