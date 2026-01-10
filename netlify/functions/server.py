@@ -7,11 +7,23 @@ import os
 
 # 프로젝트 루트를 Python 경로에 추가
 # server.py 위치: netlify/functions/server.py
-# 프로젝트 루트까지: ../.. (functions -> netlify -> root)
+# Netlify Functions 환경에서는:
+# - server.py와 같은 디렉토리에 app/, templates/, static/이 있음 (빌드 시 복사됨)
+# - 또는 프로젝트 루트에 있을 수 있음
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, '../..'))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+functions_dir = current_dir  # netlify/functions/
+
+# Functions 디렉토리에 app이 있으면 우선 사용 (빌드 시 복사됨)
+if os.path.exists(os.path.join(functions_dir, 'app')):
+    if functions_dir not in sys.path:
+        sys.path.insert(0, functions_dir)
+    print(f"[Netlify Functions] Using app from functions directory: {functions_dir}")
+else:
+    # 프로젝트 루트 사용
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    print(f"[Netlify Functions] Using app from project root: {project_root}")
 
 # 디버깅 정보 출력 (Netlify Functions 로그에서 확인 가능)
 print(f"[Netlify Functions] Server.py location: {__file__}")
