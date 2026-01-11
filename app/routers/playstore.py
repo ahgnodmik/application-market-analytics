@@ -51,19 +51,13 @@ async def fetch_rankings_impl(
         play_category: Play Store 카테고리 (예: "APPLICATION_SOCIAL", "GAME" 등)
     """
     # 월요일인지 확인 (GMT+9 기준)
-    if not force:
-        from app.database import SessionLocal
-        db_for_check = SessionLocal()
-        try:
-            if not should_fetch_this_week(db_for_check):
-                current_time = datetime.now(ZoneInfo("Asia/Seoul"))
-                weekday_names = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"앱 순위는 매주 월요일(GMT+9)에만 가져올 수 있습니다. 현재는 {weekday_names[current_time.weekday()]}입니다."
-                )
-        finally:
-            db_for_check.close()
+    if not force and not should_fetch_this_week():
+        current_time = datetime.now(ZoneInfo("Asia/Seoul"))
+        weekday_names = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+        raise HTTPException(
+            status_code=400,
+            detail=f"앱 순위는 매주 월요일(GMT+9)에만 가져올 수 있습니다. 현재는 {weekday_names[current_time.weekday()]}입니다."
+        )
     
     try:
         # Play Store에서 앱 목록 가져오기
@@ -333,7 +327,7 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
                           timedelta(days=days_until_monday))
         
         try:
-            can_fetch_now = should_fetch_this_week(db)
+            can_fetch_now = should_fetch_this_week()
         except Exception:
             can_fetch_now = False
         
