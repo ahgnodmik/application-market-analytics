@@ -18,10 +18,13 @@
 ### 빠른 시작
 
 ```bash
-# 1. 의존성 설치
+# 1. Python 의존성 설치
 pip install -r requirements.txt
 
-# 2. 로컬 개발 서버 실행 (npm 사용 - 권장)
+# 2. Node.js 의존성 설치 및 CSS 빌드
+npm install
+
+# 3. 로컬 개발 서버 실행
 npm run dev
 
 # 또는 Python 직접 실행
@@ -32,9 +35,18 @@ chmod +x run.sh
 ./run.sh
 ```
 
+### CSS 빌드
+
+Tailwind CSS는 빌드된 파일(`static/style.css`)이 Git에 포함되어 있습니다.
+개발 중 스타일을 변경한 경우:
+
+```bash
+npm run build:css
+```
+
 ### Railway 배포
 
-Railway에 배포되어 있습니다.
+Railway에 배포되어 있습니다. 빌드 시 `npm install`이 실행되며, `postinstall` 스크립트가 자동으로 CSS를 빌드합니다.
 
 ### 브라우저 접속
 
@@ -56,4 +68,3 @@ Railway에 배포되어 있습니다.
 - 시장성 점수 ≥ 6
 - 구현 난이도 ≤ 1.0
 - 핵심 기능 수 ≤ 5
-
