@@ -49,12 +49,22 @@ async def health_check():
     """헬스 체크 엔드포인트"""
     try:
         from app.database import SessionLocal
+        from sqlalchemy import text
         db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
-        return {"status": "healthy", "database": "connected"}
+        try:
+            db.execute(text("SELECT 1"))
+            db.commit()
+            return {"status": "healthy", "database": "connected"}
+        finally:
+            db.close()
     except Exception as e:
-        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+        import traceback
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
 
 # 라우터 등록 (에러가 발생해도 앱이 시작되도록)
 try:

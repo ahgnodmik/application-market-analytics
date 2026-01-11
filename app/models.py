@@ -1,9 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime
 
-Base = declarative_base()
+# Base는 database.py에서 import (단일 소스)
+from app.database import Base
 
 
 class App(Base):
