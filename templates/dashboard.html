@@ -438,127 +438,126 @@ async function loadDashboardCategories() {
     }
 }
 
-// 분석 결과 렌더링 함수 (category_analysis.html과 동일)
-function renderAnalysisResult(data) {
+// 마크다운을 Notion 스타일로 렌더링하는 함수 (category_analysis.html과 동일)
+function renderMarkdownToNotion(markdown) {
+    if (!markdown) return '<div class="text-notion-text-light">분석 결과가 없습니다.</div>';
+    
     let html = '';
+    const lines = markdown.split('\n');
+    let inList = false;
+    let inCodeBlock = false;
     
-    // 카테고리 특성 분석
-    if (data.카테고리_특성_분석) {
-        const analysis = data.카테고리_특성_분석;
-        html += `
-            <div class="bg-white p-5 rounded-lg border border-notion-border">
-                <h4 class="text-lg font-semibold text-notion-text mb-4">📊 카테고리 특성 분석</h4>
-                ${analysis.주요_트렌드 ? `
-                    <div class="mb-4">
-                        <h5 class="font-medium text-notion-text mb-2">주요 트렌드</h5>
-                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
-                            ${Array.isArray(analysis.주요_트렌드) ? analysis.주요_트렌드.map(t => `<li>${t}</li>`).join('') : `<li>${analysis.주요_트렌드}</li>`}
-                        </ul>
-                    </div>
-                ` : ''}
-                ${analysis.사용자_니즈와_동기 ? `
-                    <div class="mb-4">
-                        <h5 class="font-medium text-notion-text mb-2">사용자 니즈와 동기</h5>
-                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
-                            ${Array.isArray(analysis.사용자_니즈와_동기) ? analysis.사용자_니즈와_동기.map(n => `<li>${n}</li>`).join('') : `<li>${analysis.사용자_니즈와_동기}</li>`}
-                        </ul>
-                    </div>
-                ` : ''}
-                ${analysis.경쟁_강도 ? `
-                    <div>
-                        <h5 class="font-medium text-notion-text mb-2">경쟁 강도</h5>
-                        <p class="text-notion-text-light">${analysis.경쟁_강도}</p>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
-    // 성공 패턴 분석
-    if (data.성공_패턴_분석) {
-        const pattern = data.성공_패턴_분석;
-        html += `
-            <div class="bg-white p-5 rounded-lg border border-notion-border">
-                <h4 class="text-lg font-semibold text-notion-text mb-4">✨ 성공 패턴 분석</h4>
-                ${pattern.공통점 ? `
-                    <div class="mb-4">
-                        <h5 class="font-medium text-notion-text mb-2">공통점</h5>
-                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
-                            ${Array.isArray(pattern.공통점) ? pattern.공통점.map(p => `<li>${p}</li>`).join('') : `<li>${pattern.공통점}</li>`}
-                        </ul>
-                    </div>
-                ` : ''}
-                ${pattern.평점과_리뷰_수의_관계 ? `
-                    <div class="mb-4">
-                        <h5 class="font-medium text-notion-text mb-2">평점과 리뷰 수의 관계</h5>
-                        <p class="text-notion-text-light">${pattern.평점과_리뷰_수의_관계}</p>
-                    </div>
-                ` : ''}
-                ${pattern.무료_vs_유료_모델 ? `
-                    <div>
-                        <h5 class="font-medium text-notion-text mb-2">무료 vs 유료 모델</h5>
-                        ${typeof pattern.무료_vs_유료_모델 === 'object' ? `
-                            <div class="space-y-2 text-notion-text-light">
-                                ${pattern.무료_vs_유료_모델.무료 ? `<p><strong>무료:</strong> ${pattern.무료_vs_유료_모델.무료}</p>` : ''}
-                                ${pattern.무료_vs_유료_모델.유료 ? `<p><strong>유료:</strong> ${pattern.무료_vs_유료_모델.유료}</p>` : ''}
-                            </div>
-                        ` : `<p class="text-notion-text-light">${pattern.무료_vs_유료_모델}</p>`}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
-    // 기회 분석 (간략 버전)
-    if (data.기회_분석) {
-        const opportunity = data.기회_분석;
-        html += `
-            <div class="bg-white p-5 rounded-lg border border-notion-border">
-                <h4 class="text-lg font-semibold text-notion-text mb-4">🎯 기회 분석</h4>
-                ${opportunity.진입_가능성 ? `
-                    <div class="mb-4">
-                        <h5 class="font-medium text-notion-text mb-2">진입 가능성</h5>
-                        <p class="text-notion-text-light">${opportunity.진입_가능성}</p>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-    
-    // 구체적인 추천 (간략 버전 - 상위 3개만)
-    if (data.구체적인_추천) {
-        const recommendations = Array.isArray(data.구체적인_추천) ? data.구체적인_추천.slice(0, 3) : [];
-        if (recommendations.length > 0) {
-            html += `
-                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border border-green-200">
-                    <h4 class="text-lg font-semibold text-notion-text mb-4">🚀 추천 앱 (상위 ${recommendations.length}개)</h4>
-                    <div class="space-y-3">
-                        ${recommendations.map(rec => `
-                            <div class="bg-white p-4 rounded-lg border border-notion-border hover:shadow-md transition-shadow">
-                                <h5 class="font-semibold text-lg text-notion-text mb-2">${rec.앱_아이디어 || rec.name || '앱 아이디어'}</h5>
-                                ${rec.핵심_기능 ? `
-                                    <div class="mb-3">
-                                        <div class="text-sm font-medium text-notion-text-light mb-1">핵심 기능</div>
-                                        <ul class="list-disc list-inside space-y-1 text-sm text-notion-text-light">
-                                            ${Array.isArray(rec.핵심_기능) ? rec.핵심_기능.slice(0, 3).map(f => `<li>${f}</li>`).join('') : `<li>${rec.핵심_기능}</li>`}
-                                        </ul>
-                                    </div>
-                                ` : ''}
-                                <div class="flex flex-wrap gap-2 mt-3">
-                                    <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">난이도: ${rec.예상_구현_난이도 || rec.difficulty || '-'}</span>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">시장성: ${rec.예상_시장성_점수 || rec.marketability || '-'}</span>
-                                    ${rec.예상_화면_수 ? `<span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">화면: ${rec.예상_화면_수}개</span>` : ''}
-                                    ${rec.예상_개발_기간 ? `<span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">기간: ${rec.예상_개발_기간}</span>` : ''}
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trim();
+        
+        // 코드 블록 처리
+        if (trimmed.startsWith('```')) {
+            inCodeBlock = !inCodeBlock;
+            if (inCodeBlock) {
+                html += '<pre class="bg-notion-code-block p-4 rounded border border-notion-border overflow-x-auto my-4"><code>';
+            } else {
+                html += '</code></pre>';
+            }
+            continue;
+        }
+        
+        if (inCodeBlock) {
+            html += escapeHtml(line) + '\n';
+            continue;
+        }
+        
+        // H2 (##) - 섹션 제목
+        if (trimmed.match(/^##\s+/)) {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            const title = trimmed.replace(/^##\s+/, '');
+            html += `<div class="mt-8 mb-4 first:mt-0">
+                <h2 class="text-2xl font-semibold text-notion-text border-b border-notion-border pb-2">${escapeHtml(title)}</h2>
+            </div>`;
+            continue;
+        }
+        
+        // H3 (###) - 소제목
+        if (trimmed.match(/^###\s+/)) {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            const title = trimmed.replace(/^###\s+/, '');
+            html += `<div class="mt-6 mb-3">
+                <h3 class="text-xl font-semibold text-notion-text">${escapeHtml(title)}</h3>
+            </div>`;
+            continue;
+        }
+        
+        // 리스트 항목 (-)
+        if (trimmed.match(/^-\s+/)) {
+            if (!inList) {
+                html += '<ul class="list-none space-y-2 my-3 pl-0">';
+                inList = true;
+            }
+            const item = trimmed.replace(/^-\s+/, '');
+            // **볼드** 처리
+            const formattedItem = item.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-notion-text">$1</strong>');
+            html += `<li class="flex items-start">
+                <span class="text-notion-text mr-2 mt-1">•</span>
+                <span class="text-notion-text-light flex-1">${formattedItem}</span>
+            </li>`;
+            continue;
+        }
+        
+        // 볼드 텍스트 라인 (**텍스트**)
+        if (trimmed.match(/^\*\*.+\*\*$/)) {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            const boldText = trimmed.replace(/\*\*/g, '');
+            html += `<div class="my-3">
+                <p class="font-semibold text-lg text-notion-text">${escapeHtml(boldText)}</p>
+            </div>`;
+            continue;
+        }
+        
+        // 일반 텍스트
+        if (trimmed) {
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            // **볼드** 처리
+            let formattedText = trimmed.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-notion-text">$1</strong>');
+            // 인라인 코드 처리
+            formattedText = formattedText.replace(/`(.+?)`/g, '<code class="bg-notion-code-inline px-1.5 py-0.5 rounded text-sm font-mono text-notion-text">$1</code>');
+            html += `<p class="text-notion-text-light leading-relaxed my-3">${formattedText}</p>`;
+        } else {
+            // 빈 줄
+            if (inList) {
+                html += '</ul>';
+                inList = false;
+            }
+            if (i < lines.length - 1) { // 마지막 줄이 아니면
+                html += '<div class="my-2"></div>';
+            }
         }
     }
     
-    return html || '<div class="text-notion-text-light">분석 결과를 표시할 수 없습니다.</div>';
+    if (inList) {
+        html += '</ul>';
+    }
+    
+    // 전체를 Notion 스타일 컨테이너로 감싸기
+    return `<div class="notion-content space-y-4">${html}</div>`;
+}
+
+// HTML 이스케이프 함수
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 async function analyzeDashboardCategory() {
@@ -594,14 +593,8 @@ async function analyzeDashboardCategory() {
         const data = await response.json();
         
         if (data.success && data.report) {
-            // JSON 형식의 리포트를 파싱하여 깔끔하게 렌더링
-            try {
-                const reportData = typeof data.report === 'string' ? JSON.parse(data.report) : data.report;
-                content.innerHTML = renderAnalysisResult(reportData);
-            } catch (e) {
-                // JSON이 아닌 경우 일반 텍스트로 표시
-                content.innerHTML = `<div class="bg-white p-6 rounded whitespace-pre-wrap text-notion-text border border-notion-border">${data.report.replace(/\n/g, '<br>')}</div>`;
-            }
+            // 마크다운 형식의 리포트를 Notion 스타일로 렌더링
+            content.innerHTML = renderMarkdownToNotion(data.report);
             result.classList.remove('hidden');
             // 결과로 스크롤
             result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

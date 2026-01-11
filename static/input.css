@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+    .bg-notion-code-block {
+        background-color: #f7f6f3;
+    }
+    
+    .bg-notion-code-inline {
+        background-color: #f1f0ed;
+    }
+    
+    .notion-content {
+        color: #37352f;
+    }
+}
+
 /* Notion 스타일 커스텀 */
 :root {
   --notion-bg: #ffffff;
