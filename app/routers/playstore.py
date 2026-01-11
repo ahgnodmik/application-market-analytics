@@ -305,7 +305,7 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
     마지막으로 앱 순위를 가져온 시간 확인
     """
     try:
-        latest_app = db.query(App).order_by(App.id.desc()).first()
+        latest_app = db.query(App).filter(App.package_name.isnot(None)).order_by(App.id.desc()).first()
         
         if not latest_app:
             return {
@@ -331,9 +331,15 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
         except Exception:
             can_fetch_now = False
         
+        # created_at 필드가 있으면 사용, 없으면 None
         last_fetch = None
-        if hasattr(latest_app, 'created_at') and latest_app.created_at:
-            last_fetch = latest_app.created_at.isoformat()
+        if hasattr(latest_app, 'created_at'):
+            created_at_value = getattr(latest_app, 'created_at', None)
+            if created_at_value:
+                if isinstance(created_at_value, datetime):
+                    last_fetch = created_at_value.isoformat()
+                else:
+                    last_fetch = str(created_at_value)
         
         return {
             "last_fetch": last_fetch,
@@ -344,6 +350,8 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Error in get_last_fetch_info: {e}", exc_info=True)
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"마지막 수집 정보를 가져오는 중 오류가 발생했습니다: {str(e)}")
 
 

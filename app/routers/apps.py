@@ -35,7 +35,7 @@ async def get_apps(
     return apps
 
 
-@router.get("/playstore", response_class=List[AppResponse])
+@router.get("/playstore", response_model=List[AppResponse])
 async def get_playstore_apps(
     skip: int = 0,
     limit: int = 100,
@@ -44,11 +44,19 @@ async def get_playstore_apps(
     """
     Play Store에서 가져온 앱 목록만 조회
     """
-    apps = db.query(App).filter(
-        App.package_name.isnot(None),
-        App.package_name != ""
-    ).order_by(App.id.desc()).offset(skip).limit(limit).all()
-    return apps
+    try:
+        apps = db.query(App).filter(
+            App.package_name.isnot(None),
+            App.package_name != ""
+        ).order_by(App.id.desc()).offset(skip).limit(limit).all()
+        return apps
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_playstore_apps: {e}", exc_info=True)
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"앱 목록을 불러오는 중 오류가 발생했습니다: {str(e)}")
 
 
 @router.get("/{app_id}", response_class=AppResponse)
