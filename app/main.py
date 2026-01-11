@@ -4,6 +4,7 @@ Railway 배포용
 """
 import os
 import sys
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
@@ -23,7 +24,7 @@ print(f"[INIT] PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
 
 try:
     from app.database import engine, Base
-    from app.routers import apps, analysis, upload, report
+    from app.routers import apps, analysis, upload, report, playstore
     print("[INIT] ✅ All modules imported successfully")
 except Exception as e:
     print(f"[INIT] ❌ ERROR importing modules: {e}")
@@ -48,6 +49,7 @@ try:
     app.include_router(analysis.router)
     app.include_router(upload.router)
     app.include_router(report.router)
+    app.include_router(playstore.router)
     print(f"[APP INIT] ✅ All routers registered successfully")
 except Exception as e:
     print(f"[APP INIT] ⚠️ Warning: Router registration failed: {e}")
@@ -410,6 +412,18 @@ async def startup_event():
     sys.stdout.flush()
     print("✅ FastAPI application started successfully!")
     print(f"   Listening on 0.0.0.0:{os.getenv('PORT', '8000')}")
+    
+    # 월요일이면 Play Store 순위 자동 가져오기
+    try:
+        from app.services.play_store_scraper import should_fetch_this_week
+        from app.tasks.scheduler import check_and_fetch_rankings
+        if should_fetch_this_week():
+            print("📅 월요일 감지: Play Store 순위 자동 가져오기 시작...")
+            # 백그라운드에서 실행 (앱 시작을 블로킹하지 않음)
+            asyncio.create_task(check_and_fetch_rankings())
+    except Exception as e:
+        print(f"⚠️ Play Store 스케줄러 시작 실패: {e}")
+    
     sys.stdout.flush()
 
 # 앱 시작 시 로그 출력

@@ -9,6 +9,7 @@ class App(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False, index=True)
+    package_name = Column(String, index=True)  # Google Play Store 패키지 이름
     category = Column(String)
     rating = Column(Float)
     review_count = Column(Integer)
