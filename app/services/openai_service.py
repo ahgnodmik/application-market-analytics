@@ -3,25 +3,23 @@ OpenAI ChatGPT API 서비스
 안드로이드 마켓 앱 분석 리포트 생성
 """
 
-import os
 from typing import List, Dict, Optional
 from openai import OpenAI
-from dotenv import load_dotenv
+from app.config import settings
+import logging
 
-# .env 파일과 .env.local 파일 모두 로드 시도
-load_dotenv()  # .env 파일
-load_dotenv('.env.local')  # .env.local 파일도 시도
+logger = logging.getLogger(__name__)
 
 client = None
 
 def get_openai_client():
-    """OpenAI 클라이언트 가져오기"""
+    """OpenAI 클라이언트 가져오기 (기획서 16.1: 설정 모듈 사용)"""
     global client
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
+    if not settings.OPENAI_API_KEY:
+        logger.warning("OpenAI API key not found. Please set OPENAI_API_KEY in environment variables")
         return None
     if client is None:
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
     return client
 
 

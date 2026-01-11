@@ -1,26 +1,17 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
+from app.config import settings
 
-# 환경 변수에서 데이터베이스 URL 가져오기 (Netlify 배포 시 외부 DB 사용)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./market_analytics.db")
+# 데이터베이스 URL 설정 (설정 모듈 사용 - 기획서 16.1)
+DATABASE_URL = settings.DATABASE_URL or settings.database_url_sqlite
 
-# PostgreSQL URL 형식 변환 (Netlify 등에서 제공되는 형식)
-if DATABASE_URL.startswith("postgres://"):
+# PostgreSQL URL 형식 변환
+if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# SQLite인 경우 - Netlify Functions 환경 고려
-if DATABASE_URL.startswith("sqlite"):
-    # Netlify Functions 환경 확인 (/tmp 디렉토리 사용 가능)
-    if os.path.exists("/tmp") and not DATABASE_URL.startswith("sqlite:///:memory:"):
-        # Netlify Functions 환경: /tmp 디렉토리 사용
-        db_path = "/tmp/market_analytics.db"
-        DATABASE_URL = f"sqlite:///{db_path}"
-    elif DATABASE_URL == "sqlite:///./market_analytics.db":
-        # 로컬 개발 환경: 상대 경로 사용
-        pass
-    
+# SQLite인 경우
+if DATABASE_URL and DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL, connect_args={"check_same_thread": False}
     )
