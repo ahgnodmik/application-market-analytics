@@ -36,7 +36,8 @@ class CategoryAnalysisRequest(BaseModel):
 
 class SingleCategoryAnalysisRequest(BaseModel):
     play_category: str  # Play Store 카테고리
-    category: str = "top_free"  # 순위 타입
+    category: Optional[str] = "top_free"  # 순위 타입 (하위 호환성을 위해 Optional)
+    ranking_type: Optional[str] = None  # 순위 타입 (프론트엔드에서 사용)
     limit: int = 50  # 분석할 앱 수
     force: bool = False  # 강제 실행
 
@@ -229,10 +230,11 @@ async def analyze_category(
     특정 카테고리의 앱 목록을 GPT로 분석
     
     Args:
-        request: 분석 요청 (play_category, category, limit, force)
+        request: 분석 요청 (play_category, category/ranking_type, limit, force)
     """
     play_category = request.play_category
-    category = request.category
+    # 프론트엔드에서 ranking_type을 보내면 그것을 사용, 아니면 category 사용
+    category = request.ranking_type or request.category or "top_free"
     limit = request.limit
     force = request.force
     try:
