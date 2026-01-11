@@ -51,6 +51,17 @@ async def analyze_category_with_gpt(
                 "error": "OpenAI API 키가 설정되지 않았습니다. Railway 환경 변수에서 OPENAI_API_KEY를 확인해주세요."
             }
         
+        # API 키가 설정되었는지 추가 확인
+        from app.config import settings
+        if not settings.OPENAI_API_KEY:
+            logger.error("OPENAI_API_KEY is not set in settings")
+            return {
+                "success": False,
+                "error": "OpenAI API 키가 설정되지 않았습니다. Railway Variables에서 OPENAI_API_KEY를 확인해주세요."
+            }
+        
+        logger.info(f"OpenAI client initialized (API key prefix: {settings.OPENAI_API_KEY[:10]}...)")
+        
         # 분석할 앱 데이터 요약 (너무 길면 잘라냄)
         apps_summary = []
         for app in apps_data[:limit]:
@@ -98,21 +109,30 @@ async def analyze_category_with_gpt(
 """
 
         # GPT 호출
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "당신은 모바일 앱 시장 분석 전문가입니다. 데이터를 분석하여 실행 가능한 인사이트를 제공합니다."
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=2000
-        )
+        try:
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "당신은 모바일 앱 시장 분석 전문가입니다. 데이터를 분석하여 실행 가능한 인사이트를 제공합니다."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.7,
+                max_tokens=2000
+            )
+        except Exception as api_error:
+            error_str = str(api_error)
+            logger.error(f"OpenAI API call failed: {api_error}")
+            # 401 에러인 경우 더 명확한 메시지
+            if "401" in error_str or "invalid_api_key" in error_str or "Incorrect API key" in error_str:
+                raise ValueError("OpenAI API 키가 유효하지 않습니다. Railway 환경 변수에서 OPENAI_API_KEY를 확인하고 올바른 키로 업데이트해주세요.")
+            # 기타 API 에러는 그대로 전파
+            raise
         
         analysis_text = response.choices[0].message.content
         
