@@ -86,6 +86,13 @@ async def favicon():
 @app.get("/health")
 async def health_check():
     """헬스 체크 엔드포인트"""
+    health_status = {
+        "status": "healthy",
+        "database": "unknown",
+        "openai": "unknown"
+    }
+    
+    # 데이터베이스 체크
     try:
         from app.database import SessionLocal
         from sqlalchemy import text
@@ -93,17 +100,28 @@ async def health_check():
         try:
             db.execute(text("SELECT 1"))
             db.commit()
-            return {"status": "healthy", "database": "connected"}
+            health_status["database"] = "connected"
         finally:
             db.close()
     except Exception as e:
-        import traceback
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
+        health_status["database"] = "disconnected"
+        health_status["status"] = "unhealthy"
+        health_status["database_error"] = str(e)
+    
+    # OpenAI API 키 체크
+    try:
+        from app.config import settings
+        if settings.OPENAI_API_KEY:
+            # API 키가 설정되어 있는지만 확인 (실제 API 호출은 하지 않음)
+            api_key_prefix = settings.OPENAI_API_KEY[:10] if len(settings.OPENAI_API_KEY) > 10 else "***"
+            health_status["openai"] = f"configured (prefix: {api_key_prefix}...)"
+        else:
+            health_status["openai"] = "not_configured"
+    except Exception as e:
+        health_status["openai"] = "error"
+        health_status["openai_error"] = str(e)
+    
+    return health_status
 
 # 라우터 등록 (에러가 발생해도 앱이 시작되도록)
 try:
