@@ -23,7 +23,7 @@ except ImportError:
     logger.warning("⚠️ google-play-scraper not installed, using fallback methods")
 
 
-async def fetch_top_apps(category: str = "top_free", limit: int = 100) -> List[Dict]:
+async def fetch_top_apps(category: str = "top_free", limit: int = 100, play_category: Optional[str] = None) -> List[Dict]:
     """
     Google Play Store에서 상위 앱 목록 가져오기
     

@@ -16,9 +16,77 @@ except ImportError:
     logger.warning("google-play-scraper not installed, using fallback")
 
 
+# 카테고리 매핑
+CATEGORY_MAP = {
+    "GAME": Category.GAME,
+    "APPLICATION": Category.APPLICATION,
+    "GAME_ACTION": Category.GAME_ACTION,
+    "GAME_ADVENTURE": Category.GAME_ADVENTURE,
+    "GAME_ARCADE": Category.GAME_ARCADE,
+    "GAME_BOARD": Category.GAME_BOARD,
+    "GAME_CARD": Category.GAME_CARD,
+    "GAME_CASINO": Category.GAME_CASINO,
+    "GAME_CASUAL": Category.GAME_CASUAL,
+    "GAME_EDUCATIONAL": Category.GAME_EDUCATIONAL,
+    "GAME_MUSIC": Category.GAME_MUSIC,
+    "GAME_PUZZLE": Category.GAME_PUZZLE,
+    "GAME_RACING": Category.GAME_RACING,
+    "GAME_ROLE_PLAYING": Category.GAME_ROLE_PLAYING,
+    "GAME_SIMULATION": Category.GAME_SIMULATION,
+    "GAME_SPORTS": Category.GAME_SPORTS,
+    "GAME_STRATEGY": Category.GAME_STRATEGY,
+    "GAME_TRIVIA": Category.GAME_TRIVIA,
+    "GAME_WORD": Category.GAME_WORD,
+    "APPLICATION_ART_AND_DESIGN": Category.APPLICATION_ART_AND_DESIGN,
+    "APPLICATION_AUTO_AND_VEHICLES": Category.APPLICATION_AUTO_AND_VEHICLES,
+    "APPLICATION_BEAUTY": Category.APPLICATION_BEAUTY,
+    "APPLICATION_BOOKS_AND_REFERENCE": Category.APPLICATION_BOOKS_AND_REFERENCE,
+    "APPLICATION_BUSINESS": Category.APPLICATION_BUSINESS,
+    "APPLICATION_COMICS": Category.APPLICATION_COMICS,
+    "APPLICATION_COMMUNICATION": Category.APPLICATION_COMMUNICATION,
+    "APPLICATION_DATING": Category.APPLICATION_DATING,
+    "APPLICATION_EDUCATION": Category.APPLICATION_EDUCATION,
+    "APPLICATION_ENTERTAINMENT": Category.APPLICATION_ENTERTAINMENT,
+    "APPLICATION_EVENTS": Category.APPLICATION_EVENTS,
+    "APPLICATION_FINANCE": Category.APPLICATION_FINANCE,
+    "APPLICATION_FOOD_AND_DRINK": Category.APPLICATION_FOOD_AND_DRINK,
+    "APPLICATION_HEALTH_AND_FITNESS": Category.APPLICATION_HEALTH_AND_FITNESS,
+    "APPLICATION_HOUSE_AND_HOME": Category.APPLICATION_HOUSE_AND_HOME,
+    "APPLICATION_LIBRARIES_AND_DEMO": Category.APPLICATION_LIBRARIES_AND_DEMO,
+    "APPLICATION_LIFESTYLE": Category.APPLICATION_LIFESTYLE,
+    "APPLICATION_MAPS_AND_NAVIGATION": Category.APPLICATION_MAPS_AND_NAVIGATION,
+    "APPLICATION_MEDICAL": Category.APPLICATION_MEDICAL,
+    "APPLICATION_NEWS_AND_MAGAZINES": Category.APPLICATION_NEWS_AND_MAGAZINES,
+    "APPLICATION_PARENTING": Category.APPLICATION_PARENTING,
+    "APPLICATION_PERSONALIZATION": Category.APPLICATION_PERSONALIZATION,
+    "APPLICATION_PHOTOGRAPHY": Category.APPLICATION_PHOTOGRAPHY,
+    "APPLICATION_PRODUCTIVITY": Category.APPLICATION_PRODUCTIVITY,
+    "APPLICATION_SHOPPING": Category.APPLICATION_SHOPPING,
+    "APPLICATION_SOCIAL": Category.APPLICATION_SOCIAL,
+    "APPLICATION_SPORTS": Category.APPLICATION_SPORTS,
+    "APPLICATION_TOOLS": Category.APPLICATION_TOOLS,
+    "APPLICATION_TRAVEL_AND_LOCAL": Category.APPLICATION_TRAVEL_AND_LOCAL,
+    "APPLICATION_VIDEO_PLAYERS": Category.APPLICATION_VIDEO_PLAYERS,
+    "APPLICATION_WEATHER": Category.APPLICATION_WEATHER,
+}
+
+
+def get_category_list() -> List[Dict[str, str]]:
+    """사용 가능한 카테고리 목록 반환"""
+    categories = []
+    for key, value in CATEGORY_MAP.items():
+        categories.append({
+            "key": key,
+            "name": key.replace("_", " ").title(),
+            "type": "GAME" if key.startswith("GAME") else "APPLICATION"
+        })
+    return categories
+
+
 async def fetch_top_apps_real(
     category: str = "top_free",
     limit: int = 100,
+    play_category: Optional[str] = None,
     country: str = "kr",
     lang: str = "ko"
 ) -> List[Dict]:
@@ -26,8 +94,9 @@ async def fetch_top_apps_real(
     Google Play Store에서 상위 앱 목록 가져오기 (실제 구현)
     
     Args:
-        category: 카테고리 ("top_free", "top_paid", "top_grossing")
-        limit: 가져올 앱 수 (최대 100)
+        category: 순위 타입 ("top_free", "top_paid", "top_grossing")
+        limit: 가져올 앱 수 (최대 250)
+        play_category: Play Store 카테고리 (예: "APPLICATION", "GAME", "APPLICATION_SOCIAL" 등)
         country: 국가 코드 (기본값: "kr" - 한국)
         lang: 언어 코드 (기본값: "ko" - 한국어)
     
@@ -49,11 +118,16 @@ async def fetch_top_apps_real(
         else:
             collection_type = Collection.TOP_FREE
         
+        # 카테고리 선택
+        play_category_obj = Category.APPLICATION  # 기본값
+        if play_category:
+            play_category_obj = CATEGORY_MAP.get(play_category.upper(), Category.APPLICATION)
+        
         # 상위 앱 가져오기
-        logger.info(f"Fetching {category} apps from Play Store (limit: {limit})...")
+        logger.info(f"Fetching {category} apps from Play Store (category: {play_category}, limit: {limit})...")
         apps_data = collections(
             collection=collection_type,
-            category=Category.APPLICATION,  # 모든 앱 카테고리
+            category=play_category_obj,
             results=min(limit, 250),  # 최대 250개까지 가능
             lang=lang,
             country=country
@@ -70,7 +144,7 @@ async def fetch_top_apps_real(
                 app_dict = {
                     "name": app_info.get('title', 'Unknown'),
                     "package_name": app_info.get('appId', ''),
-                    "category": app_info.get('genre', ''),
+                    "category": app_info.get('genre', play_category or ''),
                     "rating": float(app_info.get('score', 0.0)),
                     "review_count": review_count,
                     "price_model": determine_price_model(app_info),
@@ -78,6 +152,7 @@ async def fetch_top_apps_real(
                     "last_update": app_info.get('updated', datetime.now()).isoformat() if isinstance(app_info.get('updated'), datetime) else datetime.now().isoformat(),
                     "icon": app_info.get('icon', ''),
                     "developer": app_info.get('developer', ''),
+                    "play_category": play_category or "APPLICATION",  # 추가
                 }
                 parsed_apps.append(app_dict)
                 
@@ -121,8 +196,6 @@ def determine_price_model(app_info: Dict) -> str:
     elif app_info.get('free', True):
         return "free"
     else:
-        # 구독 또는 일회성 결제 구분 필요
-        # 일단 paid로 처리
         return "paid"
 
 
@@ -187,7 +260,8 @@ def get_sample_apps(limit: int = 100) -> List[Dict]:
             "review_count": 50000000,
             "price_model": "free",
             "description": "세계 최대 동영상 플랫폼",
-            "last_update": datetime.now().isoformat()
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_VIDEO_PLAYERS"
         },
         {
             "name": "Instagram",
@@ -197,8 +271,8 @@ def get_sample_apps(limit: int = 100) -> List[Dict]:
             "review_count": 30000000,
             "price_model": "free",
             "description": "사진 및 동영상 공유 소셜 네트워크",
-            "last_update": datetime.now().isoformat()
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_SOCIAL"
         },
     ]
-    
     return sample_apps[:limit]
