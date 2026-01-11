@@ -232,34 +232,66 @@ async def analyze_category(
     Args:
         request: 분석 요청 (play_category, category/ranking_type, limit, force)
     """
-    play_category = request.play_category
-    # 프론트엔드에서 ranking_type을 보내면 그것을 사용, 아니면 category 사용
-    category = request.ranking_type or request.category or "top_free"
-    limit = request.limit
-    force = request.force
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
+        play_category = request.play_category
+        # 프론트엔드에서 ranking_type을 보내면 그것을 사용, 아니면 category 사용
+        category = request.ranking_type or request.category or "top_free"
+        limit = request.limit
+        force = request.force
+        
+        logger.info(f"Analyzing category: {play_category}, ranking_type: {category}, limit: {limit}")
+        
         # 앱 데이터 가져오기 (DB 저장 없이 분석만)
-        apps_data = await fetch_top_apps(category=category, limit=limit, play_category=play_category)
+        try:
+            apps_data = await fetch_top_apps(category=category, limit=limit, play_category=play_category)
+            logger.info(f"Fetched {len(apps_data) if apps_data else 0} apps")
+        except Exception as e:
+            logger.error(f"Error fetching apps: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"앱 데이터를 가져오는 중 오류가 발생했습니다: {str(e)}"
+            )
         
         if not apps_data:
+            logger.warning(f"No apps data returned for category {play_category}")
             raise HTTPException(status_code=500, detail="앱 데이터를 가져올 수 없습니다.")
         
         # GPT로 분석
-        analysis_result = await analyze_category_with_gpt(
-            apps_data=apps_data,
-            category_name=play_category,
-            limit=limit
-        )
+        try:
+            analysis_result = await analyze_category_with_gpt(
+                apps_data=apps_data,
+                category_name=play_category,
+                limit=limit
+            )
+            logger.info(f"GPT analysis result: success={analysis_result.get('success')}")
+        except Exception as e:
+            logger.error(f"Error in GPT analysis: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"GPT 분석 중 오류가 발생했습니다: {str(e)}"
+            )
         
         if not analysis_result.get("success"):
-            raise HTTPException(status_code=500, detail=analysis_result.get("error", "분석 실패"))
+            error_msg = analysis_result.get("error", "분석 실패")
+            logger.error(f"GPT analysis failed: {error_msg}")
+            raise HTTPException(status_code=500, detail=error_msg)
         
         return analysis_result
         
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"카테고리 분석 실패: {str(e)}")
+        logger.error(f"Unexpected error in analyze_category: {e}", exc_info=True)
+        import traceback
+        error_detail = traceback.format_exc()
+        logger.error(f"Traceback: {error_detail}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"카테고리 분석 실패: {str(e)}"
+        )
 
 
 @router.post("/analyze-multiple-categories")
