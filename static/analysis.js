@@ -83,13 +83,13 @@ async function loadRecommendations() {
         listEl.innerHTML = recommendations.map(type => `
             <div class="border border-notion-border rounded-lg p-5 hover:bg-notion-sidebar transition-colors">
                 <h4 class="text-xl font-semibold text-notion-text mb-3">${type.name}</h4>
-                <p class="text-sm text-notion-textLight mb-3"><strong>핵심 기능:</strong> ${type.core_features.join(', ')}</p>
+                <p class="text-sm text-notion-textLight mb-3"><strong>핵심 기능:</strong> ${type.core_features ? type.core_features.join(', ') : 'N/A'}</p>
                 <div class="flex flex-wrap gap-2 mb-3">
-                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm font-medium">난이도: ${type.avg_difficulty.toFixed(2)}</span>
-                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">시장성: ${type.avg_marketability.toFixed(2)}</span>
-                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">앱 수: ${type.app_count}</span>
-                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm font-medium">화면: ${type.mvp_screens}개</span>
-                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-medium">기간: ${type.build_time}</span>
+                    <span class="px-3 py-1 bg-red-100 text-red-700 rounded text-sm font-medium">난이도: ${type.avg_difficulty ? type.avg_difficulty.toFixed(2) : 'N/A'}</span>
+                    <span class="px-3 py-1 bg-green-100 text-green-700 rounded text-sm font-medium">시장성: ${type.avg_marketability ? type.avg_marketability.toFixed(2) : 'N/A'}</span>
+                    <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium">앱 수: ${type.app_count || 0}</span>
+                    <span class="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm font-medium">화면: ${type.mvp_screens || 'N/A'}개</span>
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded text-sm font-medium">기간: ${type.build_time || 'N/A'}</span>
                 </div>
                 ${type.notes ? `<p class="text-sm text-notion-text"><strong>참고:</strong> ${type.notes}</p>` : ''}
             </div>
