@@ -246,10 +246,21 @@ async def analyze_category(
         
         # 앱 데이터 가져오기 (DB 저장 없이 분석만)
         try:
+            logger.info(f"Fetching apps: category={category}, play_category={play_category}, limit={limit}")
             apps_data = await fetch_top_apps(category=category, limit=limit, play_category=play_category)
             logger.info(f"Fetched {len(apps_data) if apps_data else 0} apps")
+            
+            # 샘플 데이터인지 확인 (YouTube, Instagram만 있는 경우)
+            if apps_data and len(apps_data) <= 2:
+                app_names = [app.get("name", "") for app in apps_data]
+                if "YouTube" in app_names or "Instagram" in app_names:
+                    logger.warning(f"Only sample apps returned (likely google-play-scraper not working). Apps: {app_names}")
+                    # 샘플 데이터라도 분석은 진행하지만 경고 메시지 추가
         except Exception as e:
             logger.error(f"Error fetching apps: {e}", exc_info=True)
+            import traceback
+            error_detail = traceback.format_exc()
+            logger.error(f"Traceback: {error_detail}")
             raise HTTPException(
                 status_code=500,
                 detail=f"앱 데이터를 가져오는 중 오류가 발생했습니다: {str(e)}"
@@ -257,7 +268,10 @@ async def analyze_category(
         
         if not apps_data:
             logger.warning(f"No apps data returned for category {play_category}")
-            raise HTTPException(status_code=500, detail="앱 데이터를 가져올 수 없습니다.")
+            raise HTTPException(
+                status_code=500, 
+                detail="앱 데이터를 가져올 수 없습니다. google-play-scraper 라이브러리가 Railway에서 작동하지 않을 수 있습니다."
+            )
         
         # GPT로 분석
         try:

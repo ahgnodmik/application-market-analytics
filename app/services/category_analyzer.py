@@ -44,6 +44,12 @@ async def analyze_category_with_gpt(
     
     try:
         client = get_openai_client()
+        if not client:
+            logger.error("OpenAI client is None - API key may not be set")
+            return {
+                "success": False,
+                "error": "OpenAI API 키가 설정되지 않았습니다. Railway 환경 변수에서 OPENAI_API_KEY를 확인해주세요."
+            }
         
         # 분석할 앱 데이터 요약 (너무 길면 잘라냄)
         apps_summary = []
