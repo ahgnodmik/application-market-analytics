@@ -67,10 +67,16 @@ async function loadRecommendations() {
         const response = await fetch(
             `/api/analysis/recommendations?min_marketability=${minMarketability}&max_difficulty=${maxDifficulty}&max_features=${maxFeatures}`
         );
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ detail: '알 수 없는 오류가 발생했습니다.' }));
+            throw new Error(errorData.detail || `HTTP ${response.status}`);
+        }
+        
         const recommendations = await response.json();
         
         if (recommendations.length === 0) {
-            listEl.innerHTML = '<p class="text-notion-textLight">조건에 맞는 추천 항목이 없습니다. 필터를 조정해보세요.</p>';
+            listEl.innerHTML = '<p class="text-notion-textLight">조건에 맞는 추천 항목이 없습니다. Play Store에서 앱을 가져오고 기능을 추가한 후 다시 시도해보세요.</p>';
             return;
         }
         

@@ -30,26 +30,39 @@ def get_recommendations(
     - 핵심 기능 수 <= 5
     
     조건: 시장성 점수 >= min_marketability, 구현 난이도 <= max_difficulty, 핵심 기능 수 <= max_features
+    
+    주의: Play Store에서 가져온 앱은 기본적으로 기능(features)이 없으므로,
+    추천 기능은 기능이 추가된 앱에 대해서만 작동합니다.
     """
-    # Play Store에서 가져온 앱만 필터링
-    apps = db.query(App).filter(
-        App.package_name.isnot(None),
-        App.package_name != "",
-        App.marketability_score >= min_marketability,
-        App.difficulty_score <= max_difficulty
-    ).all()
-    
-    # 기능 수로 추가 필터링
-    filtered_apps = [
-        app for app in apps 
-        if len(app.features) <= max_features
-    ]
-    
-    if not filtered_apps:
-        return []
-    
-    # 앱 타입 그룹화
-    groups = group_apps_by_type(filtered_apps)
+    try:
+        # Play Store에서 가져온 앱만 필터링
+        apps = db.query(App).filter(
+            App.package_name.isnot(None),
+            App.package_name != "",
+            App.marketability_score >= min_marketability,
+            App.difficulty_score <= max_difficulty
+        ).all()
+        
+        # 기능 수로 추가 필터링 (기능이 있는 앱만)
+        filtered_apps = [
+            app for app in apps 
+            if len(app.features) <= max_features and len(app.features) > 0
+        ]
+        
+        if not filtered_apps:
+            # 기능이 없는 경우 빈 배열 반환 (에러 아님)
+            return []
+        
+        # 앱 타입 그룹화
+        try:
+            groups = group_apps_by_type(filtered_apps)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error grouping apps by type: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return []
     
     # 앱 타입 생성
     app_types = []
