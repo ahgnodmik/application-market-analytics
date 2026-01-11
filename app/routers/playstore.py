@@ -368,7 +368,7 @@ async def get_fetch_status(db: Session = Depends(get_db)):
                       timedelta(days=days_until_monday))
     
     try:
-        can_fetch = should_fetch_this_week(db)
+        can_fetch = should_fetch_this_week()
     except Exception as e:
         can_fetch = False
     
