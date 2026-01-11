@@ -7,9 +7,6 @@
 ```bash
 # Python 의존성 설치
 pip install -r requirements.txt
-
-# Railway 배포
-# Railway에 배포되어 있습니다.
 ```
 
 ### 2. 환경 변수 설정
@@ -53,50 +50,11 @@ chmod +x run.sh
 
 ---
 
-## Netlify 배포
+## Railway 배포
 
-### 1. Netlify Functions 로컬 테스트
+Railway에 배포되어 있습니다.
 
-Netlify 환경을 로컬에서 시뮬레이션:
-
-```bash
-npm run netlify:dev
-```
-
-또는:
-
-```bash
-netlify dev
-```
-
-이렇게 하면:
-- Netlify Functions가 로컬에서 실행됨
-- 환경 변수 자동 로드
-- http://localhost:8888 에서 접속 가능
-
-### 2. 배포
-
-#### 미리보기 배포
-
-```bash
-npm run netlify:deploy
-```
-
-#### 프로덕션 배포
-
-```bash
-npm run netlify:deploy:prod
-```
-
-### 3. Git 연동 (자동 배포)
-
-Git에 푸시하면 자동으로 배포됩니다:
-
-```bash
-git add .
-git commit -m "Your commit message"
-git push
-```
+자세한 배포 가이드는 `RAILWAY_DEPLOY.md` 및 `RAILWAY_QUICK_START.md`를 참고하세요.
 
 ---
 
@@ -106,9 +64,6 @@ git push
 |--------|------|
 | `npm run dev` | 로컬 개발 서버 실행 (포트 8000) |
 | `npm start` | 프로덕션 서버 실행 |
-| `npm run netlify:dev` | Netlify Functions 로컬 테스트 |
-| `npm run netlify:deploy` | Netlify 미리보기 배포 |
-| `npm run netlify:deploy:prod` | Netlify 프로덕션 배포 |
 
 ---
 
@@ -123,12 +78,12 @@ OPENAI_API_KEY=your-api-key-here
 DATABASE_URL=sqlite:///./market_analytics.db
 ```
 
-### Netlify
+### Railway 배포
 
-Netlify 대시보드 → Site settings → Environment variables:
+Railway 대시보드 → Variables:
 
 - `OPENAI_API_KEY`: OpenAI API 키
-- `DATABASE_URL`: (선택사항) 외부 데이터베이스 URL
+- `DATABASE_URL`: (자동 설정 - PostgreSQL)
 
 ---
 
@@ -139,13 +94,10 @@ Netlify 대시보드 → Site settings → Environment variables:
 - 기본: SQLite (`market_analytics.db`)
 - 파일이 자동으로 생성됩니다
 
-### Netlify 배포
+### Railway 배포
 
-- SQLite는 Netlify Functions와 호환되지 않음
-- 외부 데이터베이스 권장:
-  - Supabase (PostgreSQL)
-  - MongoDB Atlas
-  - Railway (PostgreSQL)
+- PostgreSQL 자동 제공
+- `DATABASE_URL` 환경 변수 자동 설정
 
 ---
 
@@ -164,19 +116,6 @@ python3 -m uvicorn app.main:app --reload --port 8001
 pip install -r requirements.txt
 ```
 
-### Netlify Functions 로컬 테스트 오류
-
-```bash
-# Netlify CLI 재설치
-npm install -g netlify-cli
-
-# 로그인 확인
-netlify login
-
-# 다시 시도
-npm run netlify:dev
-```
-
 ---
 
 ## 프로젝트 구조
@@ -187,15 +126,14 @@ application-market-analytics/
 │   ├── main.py            # 메인 앱
 │   ├── routers/           # API 라우터
 │   ├── services/          # 비즈니스 로직
-│   └── models.py          # 데이터베이스 모델
-├── netlify/               # Netlify Functions
-│   └── functions/
-│       └── server.py      # 서버리스 함수 엔트리 포인트
+│   ├── models.py          # 데이터베이스 모델
+│   ├── config.py          # 설정 관리
+│   └── worker.py          # 워커 프로세스
 ├── templates/             # HTML 템플릿
 ├── static/                # 정적 파일 (CSS, JS)
-├── netlify.toml           # Netlify 설정
 ├── requirements.txt       # Python 의존성
+├── Procfile               # Railway 시작 명령
+├── nixpacks.toml         # Railway 빌드 설정
+├── runtime.txt           # Python 버전
 └── package.json           # npm 스크립트
 ```
-
-

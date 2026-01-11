@@ -32,7 +32,7 @@ except Exception as e:
     traceback.print_exc()
     raise
 
-# 데이터베이스 테이블 생성 (Railway/Netlify 등 모든 환경에서 안전하게)
+# 데이터베이스 테이블 생성
 try:
     Base.metadata.create_all(bind=engine)
     print(f"[APP INIT] ✅ Database tables created successfully")
@@ -56,13 +56,11 @@ except Exception as e:
     import traceback
     traceback.print_exc()
 
-# 정적 파일 및 템플릿 경로 (Netlify Functions 환경 고려)
-# 프로젝트 루트 찾기 - 여러 경우 고려
+# 정적 파일 및 템플릿 경로
+# 프로젝트 루트 찾기
 current_file = os.path.abspath(__file__)
 current_dir = os.path.dirname(current_file)
 
-# Netlify Functions 환경: netlify/functions/server.py -> app/main.py
-# 로컬 환경: app/main.py
 # 프로젝트 루트 찾기 (Railway 환경 고려)
 if current_dir.endswith("app"):
     project_root = os.path.dirname(current_dir)

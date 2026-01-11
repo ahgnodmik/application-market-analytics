@@ -57,11 +57,6 @@ class Settings:
         
         # SQLite 경로 설정
         db_path = os.getenv("SQLITE_PATH", "market_analytics.db")
-        
-        # 서버리스 환경 (/tmp 사용)
-        if os.getenv("LAMBDA_TASK_ROOT") or os.getenv("NETLIFY"):
-            db_path = "/tmp/market_analytics.db"
-        
         return f"sqlite:///{db_path}"
     
     def validate(self):
