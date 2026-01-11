@@ -291,7 +291,11 @@ async def analyze_category(
         if not analysis_result.get("success"):
             error_msg = analysis_result.get("error", "분석 실패")
             logger.error(f"GPT analysis failed: {error_msg}")
-            raise HTTPException(status_code=500, detail=error_msg)
+            # 더 자세한 에러 정보 제공
+            detailed_error = f"{error_msg}"
+            if "OpenAI API 키" in error_msg or "API key" in error_msg.lower():
+                detailed_error += " Railway 환경 변수에서 OPENAI_API_KEY를 확인해주세요."
+            raise HTTPException(status_code=500, detail=detailed_error)
         
         return analysis_result
         

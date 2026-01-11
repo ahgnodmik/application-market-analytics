@@ -5,7 +5,7 @@ Railway 배포용
 import os
 import sys
 import asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
@@ -42,6 +42,45 @@ except Exception as e:
     print(f"[APP INIT] Continuing without database initialization...")
 
 app = FastAPI(title="Application Market Analytics", version="1.0.0")
+
+# 전역 예외 핸들러 추가
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """전역 예외 핸들러 - 모든 예외를 잡아서 로깅하고 적절한 응답 반환"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+    
+    # 상세한 에러 로깅
+    error_detail = traceback.format_exc()
+    logger.error(f"Unhandled exception: {exc}")
+    logger.error(f"Request URL: {request.url}")
+    logger.error(f"Request method: {request.method}")
+    logger.error(f"Traceback: {error_detail}")
+    
+    # HTTPException은 그대로 전달
+    from fastapi import HTTPException
+    if isinstance(exc, HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+    
+    # 기타 예외는 500 에러로 반환
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"서버 내부 오류가 발생했습니다: {str(exc)}",
+            "error_type": type(exc).__name__
+        }
+    )
+
+# Favicon 엔드포인트 (404 방지)
+@app.get("/favicon.ico")
+async def favicon():
+    """Favicon 요청 처리 (404 방지)"""
+    from fastapi.responses import Response
+    return Response(status_code=204)  # No Content
 
 # 헬스 체크 엔드포인트
 @app.get("/health")
