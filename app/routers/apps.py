@@ -6,15 +6,17 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from sqlalchemy import or_
+import logging
 
 from app.database import get_db
 from app.models import App
 from app.schemas import AppResponse
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/apps", tags=["apps"])
 
 
-@router.get("/", response_class=List[AppResponse])
+@router.get("/", response_model=List[AppResponse])
 async def get_apps(
     source: Optional[str] = None,  # "playstore" 또는 None (모두)
     skip: int = 0,
@@ -25,14 +27,24 @@ async def get_apps(
     앱 목록 조회
     source="playstore"일 경우 Play Store에서 가져온 앱만 반환
     """
-    query = db.query(App)
-    
-    # Play Store 앱만 필터링 (package_name이 있는 것)
-    if source == "playstore":
-        query = query.filter(App.package_name.isnot(None), App.package_name != "")
-    
-    apps = query.order_by(App.id.desc()).offset(skip).limit(limit).all()
-    return apps
+    try:
+        query = db.query(App)
+        
+        # Play Store 앱만 필터링 (package_name이 있는 것)
+        if source == "playstore":
+            query = query.filter(App.package_name.isnot(None), App.package_name != "")
+        
+        apps = query.order_by(App.id.desc()).offset(skip).limit(limit).all()
+        logger.info(f"Found {len(apps)} apps (source={source}, skip={skip}, limit={limit})")
+        return apps if apps else []
+    except Exception as e:
+        logger.error(f"Error in get_apps: {e}", exc_info=True)
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"앱 목록을 불러오는 중 오류가 발생했습니다: {str(e)}"
+        )
 
 
 @router.get("/playstore", response_model=List[AppResponse])
@@ -77,7 +89,18 @@ async def get_playstore_apps(
 @router.get("/{app_id}", response_model=AppResponse)
 async def get_app(app_id: int, db: Session = Depends(get_db)):
     """앱 상세 정보 조회"""
-    app = db.query(App).filter(App.id == app_id).first()
-    if not app:
-        raise HTTPException(status_code=404, detail="App not found")
-    return app
+    try:
+        app = db.query(App).filter(App.id == app_id).first()
+        if not app:
+            raise HTTPException(status_code=404, detail="App not found")
+        return app
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in get_app: {e}", exc_info=True)
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"앱 상세 정보를 불러오는 중 오류가 발생했습니다: {str(e)}"
+        )

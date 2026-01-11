@@ -43,6 +43,19 @@ except Exception as e:
 
 app = FastAPI(title="Application Market Analytics", version="1.0.0")
 
+# 헬스 체크 엔드포인트
+@app.get("/health")
+async def health_check():
+    """헬스 체크 엔드포인트"""
+    try:
+        from app.database import SessionLocal
+        db = SessionLocal()
+        db.execute("SELECT 1")
+        db.close()
+        return {"status": "healthy", "database": "connected"}
+    except Exception as e:
+        return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
+
 # 라우터 등록 (에러가 발생해도 앱이 시작되도록)
 try:
     app.include_router(apps.router)

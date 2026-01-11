@@ -17,7 +17,7 @@ if DATABASE_URL and DATABASE_URL.startswith("sqlite"):
     )
 else:
     # PostgreSQL 등 다른 데이터베이스
-    engine = create_engine(DATABASE_URL)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
