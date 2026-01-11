@@ -8,6 +8,62 @@
         <p class="text-notion-text-light text-base">Play Store 앱 분석 현황을 확인하세요</p>
     </div>
 
+    <!-- 카테고리 분석 (메인 기능) -->
+    <div class="notion-card p-5 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
+        <h2 class="text-xl font-semibold text-notion-text mb-4">🚀 카테고리 분석</h2>
+        <p class="text-sm text-notion-text-light mb-4">Play Store 카테고리를 선택하여 GPT로 분석하고 추천 앱 타입을 확인하세요</p>
+        
+        <div class="mb-4">
+            <button id="dashboardLoadCategoriesBtn" class="notion-button notion-button-blue mb-4">
+                카테고리 목록 불러오기
+            </button>
+            <div id="dashboardCategoriesContainer" class="hidden">
+                <label class="block text-sm font-medium text-notion-text mb-2">분석할 카테고리 선택:</label>
+                <select id="dashboardCategorySelect" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue mb-3">
+                    <option value="">카테고리를 선택하세요</option>
+                </select>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-notion-text mb-2">분석할 앱 수:</label>
+                        <input type="number" id="dashboardAnalysisLimit" value="50" min="10" max="100" 
+                               class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-notion-text mb-2">순위 타입:</label>
+                        <select id="dashboardRankingType" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                            <option value="top_free">무료 앱</option>
+                            <option value="top_paid">유료 앱</option>
+                            <option value="top_grossing">수익순</option>
+                        </select>
+                    </div>
+                    <div class="flex items-end">
+                        <button id="dashboardAnalyzeBtn" 
+                                class="w-full notion-button notion-button-green disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled>
+                            GPT 분석 시작
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="dashboardAnalysisLoading" class="hidden text-center py-4">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-notion-blue"></div>
+            <p class="mt-2 text-notion-text-light">분석 중... 잠시만 기다려주세요</p>
+        </div>
+
+        <div id="dashboardAnalysisResult" class="hidden mt-6">
+            <div class="border-t border-blue-300 pt-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-notion-text">분석 결과</h3>
+                    <a href="/category-analysis" class="text-sm text-notion-blue hover:underline">상세 분석 보기 →</a>
+                </div>
+                <div id="dashboardAnalysisContent" class="space-y-6"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- 수집 상태 및 액션 -->
     <div class="notion-card p-5">
         <div class="flex items-center justify-between mb-4">
@@ -88,6 +144,8 @@
 </div>
 
 <script>
+let categories = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
     await loadFetchStatus();
     await loadStatistics();
@@ -98,6 +156,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('fetch-now-btn').addEventListener('click', async () => {
         await fetchRankingsNow();
     });
+
+    // 대시보드 카테고리 분석 기능
+    document.getElementById('dashboardLoadCategoriesBtn').addEventListener('click', loadDashboardCategories);
+    document.getElementById('dashboardCategorySelect').addEventListener('change', function() {
+        document.getElementById('dashboardAnalyzeBtn').disabled = !this.value;
+    });
+    document.getElementById('dashboardAnalyzeBtn').addEventListener('click', analyzeDashboardCategory);
 });
 
 // 수집 상태 로드
@@ -340,6 +405,224 @@ async function loadRecommendations() {
     } catch (error) {
         console.error('Error loading recommendations:', error);
         container.innerHTML = '<p class="text-red-600 text-sm">추천 목록을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
+
+// 대시보드 카테고리 분석 기능
+async function loadDashboardCategories() {
+    const btn = document.getElementById('dashboardLoadCategoriesBtn');
+    btn.disabled = true;
+    btn.textContent = '로딩 중...';
+    
+    try {
+        const response = await fetch('/api/playstore/categories');
+        const data = await response.json();
+        
+        if (data.success && data.categories) {
+            categories = data.categories;
+            const select = document.getElementById('dashboardCategorySelect');
+            select.innerHTML = '<option value="">카테고리를 선택하세요</option>' +
+                categories.map(cat => `<option value="${cat.key}">${cat.name}</option>`).join('');
+            
+            document.getElementById('dashboardCategoriesContainer').classList.remove('hidden');
+            btn.textContent = '카테고리 목록 불러오기';
+            btn.disabled = false;
+        } else {
+            throw new Error('카테고리 목록을 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+        alert('카테고리 목록을 불러오는 중 오류가 발생했습니다.');
+        btn.textContent = '카테고리 목록 불러오기';
+        btn.disabled = false;
+    }
+}
+
+// 분석 결과 렌더링 함수 (category_analysis.html과 동일)
+function renderAnalysisResult(data) {
+    let html = '';
+    
+    // 카테고리 특성 분석
+    if (data.카테고리_특성_분석) {
+        const analysis = data.카테고리_특성_분석;
+        html += `
+            <div class="bg-white p-5 rounded-lg border border-notion-border">
+                <h4 class="text-lg font-semibold text-notion-text mb-4">📊 카테고리 특성 분석</h4>
+                ${analysis.주요_트렌드 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-notion-text mb-2">주요 트렌드</h5>
+                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
+                            ${Array.isArray(analysis.주요_트렌드) ? analysis.주요_트렌드.map(t => `<li>${t}</li>`).join('') : `<li>${analysis.주요_트렌드}</li>`}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${analysis.사용자_니즈와_동기 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-notion-text mb-2">사용자 니즈와 동기</h5>
+                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
+                            ${Array.isArray(analysis.사용자_니즈와_동기) ? analysis.사용자_니즈와_동기.map(n => `<li>${n}</li>`).join('') : `<li>${analysis.사용자_니즈와_동기}</li>`}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${analysis.경쟁_강도 ? `
+                    <div>
+                        <h5 class="font-medium text-notion-text mb-2">경쟁 강도</h5>
+                        <p class="text-notion-text-light">${analysis.경쟁_강도}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // 성공 패턴 분석
+    if (data.성공_패턴_분석) {
+        const pattern = data.성공_패턴_분석;
+        html += `
+            <div class="bg-white p-5 rounded-lg border border-notion-border">
+                <h4 class="text-lg font-semibold text-notion-text mb-4">✨ 성공 패턴 분석</h4>
+                ${pattern.공통점 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-notion-text mb-2">공통점</h5>
+                        <ul class="list-disc list-inside space-y-1 text-notion-text-light">
+                            ${Array.isArray(pattern.공통점) ? pattern.공통점.map(p => `<li>${p}</li>`).join('') : `<li>${pattern.공통점}</li>`}
+                        </ul>
+                    </div>
+                ` : ''}
+                ${pattern.평점과_리뷰_수의_관계 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-notion-text mb-2">평점과 리뷰 수의 관계</h5>
+                        <p class="text-notion-text-light">${pattern.평점과_리뷰_수의_관계}</p>
+                    </div>
+                ` : ''}
+                ${pattern.무료_vs_유료_모델 ? `
+                    <div>
+                        <h5 class="font-medium text-notion-text mb-2">무료 vs 유료 모델</h5>
+                        ${typeof pattern.무료_vs_유료_모델 === 'object' ? `
+                            <div class="space-y-2 text-notion-text-light">
+                                ${pattern.무료_vs_유료_모델.무료 ? `<p><strong>무료:</strong> ${pattern.무료_vs_유료_모델.무료}</p>` : ''}
+                                ${pattern.무료_vs_유료_모델.유료 ? `<p><strong>유료:</strong> ${pattern.무료_vs_유료_모델.유료}</p>` : ''}
+                            </div>
+                        ` : `<p class="text-notion-text-light">${pattern.무료_vs_유료_모델}</p>`}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // 기회 분석 (간략 버전)
+    if (data.기회_분석) {
+        const opportunity = data.기회_분석;
+        html += `
+            <div class="bg-white p-5 rounded-lg border border-notion-border">
+                <h4 class="text-lg font-semibold text-notion-text mb-4">🎯 기회 분석</h4>
+                ${opportunity.진입_가능성 ? `
+                    <div class="mb-4">
+                        <h5 class="font-medium text-notion-text mb-2">진입 가능성</h5>
+                        <p class="text-notion-text-light">${opportunity.진입_가능성}</p>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // 구체적인 추천 (간략 버전 - 상위 3개만)
+    if (data.구체적인_추천) {
+        const recommendations = Array.isArray(data.구체적인_추천) ? data.구체적인_추천.slice(0, 3) : [];
+        if (recommendations.length > 0) {
+            html += `
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 p-5 rounded-lg border border-green-200">
+                    <h4 class="text-lg font-semibold text-notion-text mb-4">🚀 추천 앱 (상위 ${recommendations.length}개)</h4>
+                    <div class="space-y-3">
+                        ${recommendations.map(rec => `
+                            <div class="bg-white p-4 rounded-lg border border-notion-border hover:shadow-md transition-shadow">
+                                <h5 class="font-semibold text-lg text-notion-text mb-2">${rec.앱_아이디어 || rec.name || '앱 아이디어'}</h5>
+                                ${rec.핵심_기능 ? `
+                                    <div class="mb-3">
+                                        <div class="text-sm font-medium text-notion-text-light mb-1">핵심 기능</div>
+                                        <ul class="list-disc list-inside space-y-1 text-sm text-notion-text-light">
+                                            ${Array.isArray(rec.핵심_기능) ? rec.핵심_기능.slice(0, 3).map(f => `<li>${f}</li>`).join('') : `<li>${rec.핵심_기능}</li>`}
+                                        </ul>
+                                    </div>
+                                ` : ''}
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    <span class="px-2 py-1 text-xs bg-red-100 text-red-700 rounded">난이도: ${rec.예상_구현_난이도 || rec.difficulty || '-'}</span>
+                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-700 rounded">시장성: ${rec.예상_시장성_점수 || rec.marketability || '-'}</span>
+                                    ${rec.예상_화면_수 ? `<span class="px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">화면: ${rec.예상_화면_수}개</span>` : ''}
+                                    ${rec.예상_개발_기간 ? `<span class="px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded">기간: ${rec.예상_개발_기간}</span>` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    return html || '<div class="text-notion-text-light">분석 결과를 표시할 수 없습니다.</div>';
+}
+
+async function analyzeDashboardCategory() {
+    const categoryKey = document.getElementById('dashboardCategorySelect').value;
+    const limit = parseInt(document.getElementById('dashboardAnalysisLimit').value);
+    const rankingType = document.getElementById('dashboardRankingType').value;
+    
+    if (!categoryKey) {
+        alert('카테고리를 선택해주세요.');
+        return;
+    }
+    
+    const loading = document.getElementById('dashboardAnalysisLoading');
+    const result = document.getElementById('dashboardAnalysisResult');
+    const content = document.getElementById('dashboardAnalysisContent');
+    const btn = document.getElementById('dashboardAnalyzeBtn');
+    
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/playstore/analyze-category', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                play_category: categoryKey,
+                limit: limit,
+                ranking_type: rankingType
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.report) {
+            // JSON 형식의 리포트를 파싱하여 깔끔하게 렌더링
+            try {
+                const reportData = typeof data.report === 'string' ? JSON.parse(data.report) : data.report;
+                content.innerHTML = renderAnalysisResult(reportData);
+            } catch (e) {
+                // JSON이 아닌 경우 일반 텍스트로 표시
+                content.innerHTML = `<div class="bg-white p-6 rounded whitespace-pre-wrap text-notion-text border border-notion-border">${data.report.replace(/\n/g, '<br>')}</div>`;
+            }
+            result.classList.remove('hidden');
+            // 결과로 스크롤
+            result.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            const errorMsg = data.detail || data.error || '분석 실패';
+            throw new Error(errorMsg);
+        }
+    } catch (error) {
+        console.error('Error analyzing category:', error);
+        let errorMessage = error.message || '알 수 없는 오류';
+        
+        content.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 class="text-red-800 font-semibold mb-2">분석 실패</h3>
+                <p class="text-red-600">${errorMessage}</p>
+            </div>
+        `;
+        result.classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+        btn.disabled = false;
     }
 }
 </script>
