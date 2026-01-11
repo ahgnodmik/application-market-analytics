@@ -40,10 +40,16 @@ async def fetch_top_apps(category: str = "top_free", limit: int = 100, play_cate
     # 방법 1: google-play-scraper 라이브러리 사용 (권장)
     if REAL_SCRAPER_AVAILABLE:
         try:
-            logger.info(f"Using google-play-scraper for {category} apps (limit: {limit})")
-            return await fetch_top_apps_real(category=category, limit=limit)
+            logger.info(f"Using google-play-scraper for {category} apps, play_category: {play_category}, limit: {limit}")
+            # play_category가 있으면 카테고리별로 가져오기
+            if play_category:
+                return await fetch_top_apps_real(category=category, limit=limit, play_category=play_category)
+            else:
+                return await fetch_top_apps_real(category=category, limit=limit)
         except Exception as e:
             logger.error(f"Error with google-play-scraper: {e}, falling back to HTML scraping")
+            import traceback
+            logger.error(traceback.format_exc())
     
     # 방법 2: 직접 HTML 스크래핑 (fallback)
     apps = []
