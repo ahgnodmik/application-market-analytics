@@ -178,12 +178,23 @@ async def fetch_app_details(package_name: str) -> Optional[Dict]:
     """
     특정 앱의 상세 정보 가져오기
     
+    실제 구현: google-play-scraper 라이브러리 사용 (권장)
+    또는 직접 HTML 스크래핑
+    
     Args:
         package_name: 앱 패키지 이름 (예: com.google.android.youtube)
     
     Returns:
         앱 상세 정보
     """
+    # 방법 1: google-play-scraper 라이브러리 사용 (권장)
+    try:
+        from app.services.play_store_scraper_real import fetch_app_details_real
+        return await fetch_app_details_real(package_name=package_name)
+    except ImportError:
+        pass
+    
+    # 방법 2: 직접 HTML 스크래핑 (fallback)
     try:
         url = f"https://play.google.com/store/apps/details?id={package_name}"
         
