@@ -31,8 +31,10 @@ def get_recommendations(
     
     조건: 시장성 점수 >= min_marketability, 구현 난이도 <= max_difficulty, 핵심 기능 수 <= max_features
     """
-    # 조건에 맞는 앱 필터링
+    # Play Store에서 가져온 앱만 필터링
     apps = db.query(App).filter(
+        App.package_name.isnot(None),
+        App.package_name != "",
         App.marketability_score >= min_marketability,
         App.difficulty_score <= max_difficulty
     ).all()
@@ -124,8 +126,13 @@ def get_app_type(type_id: int, db: Session = Depends(get_db)):
 def get_matrix_data(db: Session = Depends(get_db)):
     """
     2축 매트릭스 데이터 (X: 구현 난이도, Y: 시장성 점수)
+    Play Store에서 가져온 앱만 포함
     """
-    apps = db.query(App).all()
+    # Play Store에서 가져온 앱만 조회
+    apps = db.query(App).filter(
+        App.package_name.isnot(None),
+        App.package_name != ""
+    ).all()
     
     matrix_data = [
         {
