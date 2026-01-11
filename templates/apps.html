@@ -3,17 +3,14 @@
 {% block content %}
 <div class="space-y-6">
     <div>
-        <h2 class="text-3xl font-bold text-notion-text mb-2">앱 관리</h2>
-        <p class="text-notion-textLight">앱 데이터를 추가하고 관리하세요</p>
+        <h2 class="text-3xl font-bold text-notion-text mb-2">Play Store 앱 목록</h2>
+        <p class="text-notion-textLight">Google Play Store에서 가져온 앱 목록을 확인하세요</p>
     </div>
     
-    <div class="flex gap-3 mb-6">
-        <button onclick="showAddAppModal()" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">
-            앱 추가
-        </button>
-        <button onclick="showUploadModal()" class="px-4 py-2 bg-white border border-notion-border text-notion-text rounded-md hover:bg-notion-sidebar transition-colors">
-            CSV 업로드
-        </button>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <p class="text-sm text-blue-800">
+            💡 <strong>앱 추가 방법:</strong> <a href="/category-analysis" class="underline font-medium">카테고리 분석</a> 페이지에서 카테고리를 선택하고 순위를 가져오면 자동으로 추가됩니다.
+        </p>
     </div>
     
     <div id="apps-list" class="space-y-3">

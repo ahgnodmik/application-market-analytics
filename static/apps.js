@@ -24,11 +24,19 @@ async function loadApps() {
     listEl.innerHTML = '<p class="text-notion-textLight">로딩 중...</p>';
     
     try {
-        const response = await fetch('/api/apps/');
+        // Play Store에서 가져온 앱만 로드
+        const response = await fetch('/api/apps/playstore?limit=1000');
         const apps = await response.json();
         
         if (apps.length === 0) {
-            listEl.innerHTML = '<p class="text-notion-textLight">등록된 앱이 없습니다. 앱을 추가해보세요.</p>';
+            listEl.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                    <p class="text-yellow-800 mb-4">Play Store에서 가져온 앱이 없습니다.</p>
+                    <a href="/category-analysis" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors inline-block">
+                        카테고리 분석에서 앱 가져오기
+                    </a>
+                </div>
+            `;
             return;
         }
         
