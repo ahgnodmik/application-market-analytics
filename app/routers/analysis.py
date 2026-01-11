@@ -10,6 +10,9 @@ from app.services.type_grouper import (
     estimate_build_time,
     estimate_mvp_screens
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
 
@@ -57,66 +60,89 @@ def get_recommendations(
         try:
             groups = group_apps_by_type(filtered_apps)
         except Exception as e:
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Error grouping apps by type: {e}")
             import traceback
             logger.error(traceback.format_exc())
             return []
-    
-    # 앱 타입 생성
-    app_types = []
-    for group_key, group_apps in groups.items():
-        if not group_apps:
-            continue
         
-        # 첫 번째 앱의 기능들을 사용
-        sample_app = group_apps[0]
-        feature_names = [f.name for f in sample_app.features[:max_features]]
+        # 앱 타입 생성
+        app_types = []
+        try:
+            for group_key, group_apps in groups.items():
+                if not group_apps:
+                    continue
+                
+                # 첫 번째 앱의 기능들을 사용
+                sample_app = group_apps[0]
+                if not sample_app.features:
+                    continue
+                    
+                feature_names = [f.name for f in sample_app.features[:max_features]]
+                
+                if not feature_names:
+                    continue
+                
+                # 타입 이름 생성
+                try:
+                    type_name = generate_type_name(feature_names)
+                except Exception as e:
+                    logger.error(f"Error generating type name: {e}")
+                    continue
+                
+                # 통계 계산
+                avg_difficulty = sum(app.difficulty_score or 0 for app in group_apps) / len(group_apps)
+                avg_marketability = sum(app.marketability_score or 0 for app in group_apps) / len(group_apps)
+                
+                # MVP 정보 추정
+                try:
+                    mvp_screens = estimate_mvp_screens(len(feature_names))
+                    build_time = estimate_build_time(len(feature_names), avg_difficulty)
+                except Exception as e:
+                    logger.error(f"Error estimating MVP info: {e}")
+                    mvp_screens = len(feature_names) * 2
+                    build_time = "2-4주"
+                
+                # 기존 타입 확인 또는 생성
+                db_type = db.query(AppType).filter(AppType.name == type_name).first()
+                if db_type:
+                    # 업데이트
+                    db_type.core_features = feature_names
+                    db_type.mvp_screens = mvp_screens
+                    db_type.build_time = build_time
+                    db_type.avg_difficulty = avg_difficulty
+                    db_type.avg_marketability = avg_marketability
+                    db_type.app_count = len(group_apps)
+                else:
+                    # 생성
+                    db_type = AppType(
+                        name=type_name,
+                        core_features=feature_names,
+                        mvp_screens=mvp_screens,
+                        build_time=build_time,
+                        avg_difficulty=avg_difficulty,
+                        avg_marketability=avg_marketability,
+                        app_count=len(group_apps)
+                    )
+                    db.add(db_type)
+                
+                app_types.append(db_type)
+            
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"Error creating app types: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return []
         
-        if not feature_names:
-            continue
+        # 응답 생성
+        return app_types
         
-        # 타입 이름 생성
-        type_name = generate_type_name(feature_names)
-        
-        # 통계 계산
-        avg_difficulty = sum(app.difficulty_score for app in group_apps) / len(group_apps)
-        avg_marketability = sum(app.marketability_score for app in group_apps) / len(group_apps)
-        
-        # MVP 정보 추정
-        mvp_screens = estimate_mvp_screens(len(feature_names))
-        build_time = estimate_build_time(len(feature_names), avg_difficulty)
-        
-        # 기존 타입 확인 또는 생성
-        db_type = db.query(AppType).filter(AppType.name == type_name).first()
-        if db_type:
-            # 업데이트
-            db_type.core_features = feature_names
-            db_type.mvp_screens = mvp_screens
-            db_type.build_time = build_time
-            db_type.avg_difficulty = avg_difficulty
-            db_type.avg_marketability = avg_marketability
-            db_type.app_count = len(group_apps)
-        else:
-            # 생성
-            db_type = AppType(
-                name=type_name,
-                core_features=feature_names,
-                mvp_screens=mvp_screens,
-                build_time=build_time,
-                avg_difficulty=avg_difficulty,
-                avg_marketability=avg_marketability,
-                app_count=len(group_apps)
-            )
-            db.add(db_type)
-        
-        app_types.append(db_type)
-    
-    db.commit()
-    
-    # 응답 생성
-    return app_types
+    except Exception as e:
+        logger.error(f"Error in get_recommendations: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return []
 
 
 @router.get("/types", response_model=List[AppTypeResponse])
@@ -141,31 +167,35 @@ def get_matrix_data(db: Session = Depends(get_db)):
     2축 매트릭스 데이터 (X: 구현 난이도, Y: 시장성 점수)
     Play Store에서 가져온 앱만 포함
     """
-    # Play Store에서 가져온 앱만 조회
-    apps = db.query(App).filter(
-        App.package_name.isnot(None),
-        App.package_name != ""
-    ).all()
-    
-    matrix_data = [
-        {
-            "id": app.id,
-            "name": app.name,
-            "difficulty": app.difficulty_score,
-            "marketability": app.marketability_score,
-            "category": app.category,
-            "rating": app.rating,
-            "review_count": app.review_count
+    try:
+        # Play Store에서 가져온 앱만 조회
+        apps = db.query(App).filter(
+            App.package_name.isnot(None),
+            App.package_name != ""
+        ).all()
+        
+        matrix_data = [
+            {
+                "id": app.id,
+                "name": app.name,
+                "difficulty": app.difficulty_score or 0.0,
+                "marketability": app.marketability_score or 0.0,
+                "category": app.category,
+                "rating": app.rating,
+                "review_count": app.review_count
+            }
+            for app in apps
+        ]
+        
+        return {
+            "apps": matrix_data,
+            "total": len(matrix_data)
         }
-        for app in apps
-    ]
-    
-    return {
-        "apps": matrix_data,
-        "total": len(matrix_data)
-    }
-
-
-
-
-
+    except Exception as e:
+        logger.error(f"Error in get_matrix_data: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return {
+            "apps": [],
+            "total": 0
+        }
