@@ -115,6 +115,7 @@ async def analyze_category_with_gpt(
             "category": category_name,
             "apps_analyzed": len(apps_summary),
             "analysis": analysis_text,
+            "report": analysis_text,  # 프론트엔드 호환성을 위해 report 필드도 추가
             "raw_apps": apps_summary
         }
         
