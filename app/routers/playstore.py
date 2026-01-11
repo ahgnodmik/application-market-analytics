@@ -2,7 +2,7 @@
 Google Play Store 앱 순위 가져오기 라우터
 카테고리별 순위 수집 및 GPT 분석 기능 포함
 """
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -32,6 +32,13 @@ class CategoryAnalysisRequest(BaseModel):
     categories: List[str]  # 분석할 카테고리 목록
     limit_per_category: int = 50  # 카테고리당 가져올 앱 수
     ranking_type: str = "top_free"  # top_free, top_paid, top_grossing
+
+
+class SingleCategoryAnalysisRequest(BaseModel):
+    play_category: str  # Play Store 카테고리
+    category: str = "top_free"  # 순위 타입
+    limit: int = 50  # 분석할 앱 수
+    force: bool = False  # 강제 실행
 
 
 async def fetch_rankings_impl(
@@ -215,21 +222,19 @@ async def fetch_by_category(
 
 @router.post("/analyze-category")
 async def analyze_category(
-    play_category: str,
-    category: str = "top_free",
-    limit: int = 50,
-    force: bool = False,
+    request: SingleCategoryAnalysisRequest,
     db: Session = Depends(get_db)
 ):
     """
     특정 카테고리의 앱 목록을 GPT로 분석
     
     Args:
-        play_category: Play Store 카테고리
-        category: 순위 타입
-        limit: 분석할 앱 수
-        force: 월요일이 아니어도 강제로 가져오기
+        request: 분석 요청 (play_category, category, limit, force)
     """
+    play_category = request.play_category
+    category = request.category
+    limit = request.limit
+    force = request.force
     try:
         # 앱 데이터 가져오기 (DB 저장 없이 분석만)
         apps_data = await fetch_top_apps(category=category, limit=limit, play_category=play_category)
