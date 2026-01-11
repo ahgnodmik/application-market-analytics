@@ -18,76 +18,136 @@ except ImportError:
     logger.warning("google-play-scraper not installed, using fallback")
 
 
+# 기본 카테고리 목록 (라이브러리가 없을 때도 사용 가능)
+DEFAULT_CATEGORIES = [
+    {"key": "APPLICATION", "name": "Application", "type": "APPLICATION"},
+    {"key": "GAME", "name": "Game", "type": "GAME"},
+    {"key": "APPLICATION_SOCIAL", "name": "Social", "type": "APPLICATION"},
+    {"key": "APPLICATION_PRODUCTIVITY", "name": "Productivity", "type": "APPLICATION"},
+    {"key": "APPLICATION_ENTERTAINMENT", "name": "Entertainment", "type": "APPLICATION"},
+    {"key": "APPLICATION_COMMUNICATION", "name": "Communication", "type": "APPLICATION"},
+    {"key": "APPLICATION_FINANCE", "name": "Finance", "type": "APPLICATION"},
+    {"key": "APPLICATION_SHOPPING", "name": "Shopping", "type": "APPLICATION"},
+    {"key": "APPLICATION_TOOLS", "name": "Tools", "type": "APPLICATION"},
+    {"key": "APPLICATION_EDUCATION", "name": "Education", "type": "APPLICATION"},
+    {"key": "APPLICATION_HEALTH_AND_FITNESS", "name": "Health And Fitness", "type": "APPLICATION"},
+    {"key": "APPLICATION_LIFESTYLE", "name": "Lifestyle", "type": "APPLICATION"},
+    {"key": "APPLICATION_PHOTOGRAPHY", "name": "Photography", "type": "APPLICATION"},
+    {"key": "APPLICATION_TRAVEL_AND_LOCAL", "name": "Travel And Local", "type": "APPLICATION"},
+    {"key": "APPLICATION_MUSIC_AND_AUDIO", "name": "Music And Audio", "type": "APPLICATION"},
+    {"key": "APPLICATION_VIDEO_PLAYERS", "name": "Video Players", "type": "APPLICATION"},
+    {"key": "APPLICATION_NEWS_AND_MAGAZINES", "name": "News And Magazines", "type": "APPLICATION"},
+    {"key": "APPLICATION_WEATHER", "name": "Weather", "type": "APPLICATION"},
+    {"key": "APPLICATION_BOOKS_AND_REFERENCE", "name": "Books And Reference", "type": "APPLICATION"},
+    {"key": "APPLICATION_FOOD_AND_DRINK", "name": "Food And Drink", "type": "APPLICATION"},
+    {"key": "GAME_ACTION", "name": "Action", "type": "GAME"},
+    {"key": "GAME_ADVENTURE", "name": "Adventure", "type": "GAME"},
+    {"key": "GAME_ARCADE", "name": "Arcade", "type": "GAME"},
+    {"key": "GAME_BOARD", "name": "Board", "type": "GAME"},
+    {"key": "GAME_CARD", "name": "Card", "type": "GAME"},
+    {"key": "GAME_CASINO", "name": "Casino", "type": "GAME"},
+    {"key": "GAME_CASUAL", "name": "Casual", "type": "GAME"},
+    {"key": "GAME_EDUCATIONAL", "name": "Educational", "type": "GAME"},
+    {"key": "GAME_MUSIC", "name": "Music", "type": "GAME"},
+    {"key": "GAME_PUZZLE", "name": "Puzzle", "type": "GAME"},
+    {"key": "GAME_RACING", "name": "Racing", "type": "GAME"},
+    {"key": "GAME_ROLE_PLAYING", "name": "Role Playing", "type": "GAME"},
+    {"key": "GAME_SIMULATION", "name": "Simulation", "type": "GAME"},
+    {"key": "GAME_SPORTS", "name": "Sports", "type": "GAME"},
+    {"key": "GAME_STRATEGY", "name": "Strategy", "type": "GAME"},
+    {"key": "GAME_TRIVIA", "name": "Trivia", "type": "GAME"},
+    {"key": "GAME_WORD", "name": "Word", "type": "GAME"},
+]
+
+
 def _get_category_map():
     """카테고리 매핑 생성 (동적으로)"""
     if not SCRAPER_AVAILABLE or not Category:
         return {}
     
-    return {
-        "GAME": Category.GAME,
-        "APPLICATION": Category.APPLICATION,
-        "GAME_ACTION": Category.GAME_ACTION,
-        "GAME_ADVENTURE": Category.GAME_ADVENTURE,
-        "GAME_ARCADE": Category.GAME_ARCADE,
-        "GAME_BOARD": Category.GAME_BOARD,
-        "GAME_CARD": Category.GAME_CARD,
-        "GAME_CASINO": Category.GAME_CASINO,
-        "GAME_CASUAL": Category.GAME_CASUAL,
-        "GAME_EDUCATIONAL": Category.GAME_EDUCATIONAL,
-        "GAME_MUSIC": Category.GAME_MUSIC,
-        "GAME_PUZZLE": Category.GAME_PUZZLE,
-        "GAME_RACING": Category.GAME_RACING,
-        "GAME_ROLE_PLAYING": Category.GAME_ROLE_PLAYING,
-        "GAME_SIMULATION": Category.GAME_SIMULATION,
-        "GAME_SPORTS": Category.GAME_SPORTS,
-        "GAME_STRATEGY": Category.GAME_STRATEGY,
-        "GAME_TRIVIA": Category.GAME_TRIVIA,
-        "GAME_WORD": Category.GAME_WORD,
-        "APPLICATION_ART_AND_DESIGN": Category.APPLICATION_ART_AND_DESIGN,
-        "APPLICATION_AUTO_AND_VEHICLES": Category.APPLICATION_AUTO_AND_VEHICLES,
-        "APPLICATION_BEAUTY": Category.APPLICATION_BEAUTY,
-        "APPLICATION_BOOKS_AND_REFERENCE": Category.APPLICATION_BOOKS_AND_REFERENCE,
-        "APPLICATION_BUSINESS": Category.APPLICATION_BUSINESS,
-        "APPLICATION_COMICS": Category.APPLICATION_COMICS,
-        "APPLICATION_COMMUNICATION": Category.APPLICATION_COMMUNICATION,
-        "APPLICATION_DATING": Category.APPLICATION_DATING,
-        "APPLICATION_EDUCATION": Category.APPLICATION_EDUCATION,
-        "APPLICATION_ENTERTAINMENT": Category.APPLICATION_ENTERTAINMENT,
-        "APPLICATION_EVENTS": Category.APPLICATION_EVENTS,
-        "APPLICATION_FINANCE": Category.APPLICATION_FINANCE,
-        "APPLICATION_FOOD_AND_DRINK": Category.APPLICATION_FOOD_AND_DRINK,
-        "APPLICATION_HEALTH_AND_FITNESS": Category.APPLICATION_HEALTH_AND_FITNESS,
-        "APPLICATION_HOUSE_AND_HOME": Category.APPLICATION_HOUSE_AND_HOME,
-        "APPLICATION_LIBRARIES_AND_DEMO": Category.APPLICATION_LIBRARIES_AND_DEMO,
-        "APPLICATION_LIFESTYLE": Category.APPLICATION_LIFESTYLE,
-        "APPLICATION_MAPS_AND_NAVIGATION": Category.APPLICATION_MAPS_AND_NAVIGATION,
-        "APPLICATION_MEDICAL": Category.APPLICATION_MEDICAL,
-        "APPLICATION_NEWS_AND_MAGAZINES": Category.APPLICATION_NEWS_AND_MAGAZINES,
-        "APPLICATION_PARENTING": Category.APPLICATION_PARENTING,
-        "APPLICATION_PERSONALIZATION": Category.APPLICATION_PERSONALIZATION,
-        "APPLICATION_PHOTOGRAPHY": Category.APPLICATION_PHOTOGRAPHY,
-        "APPLICATION_PRODUCTIVITY": Category.APPLICATION_PRODUCTIVITY,
-        "APPLICATION_SHOPPING": Category.APPLICATION_SHOPPING,
-        "APPLICATION_SOCIAL": Category.APPLICATION_SOCIAL,
-        "APPLICATION_SPORTS": Category.APPLICATION_SPORTS,
-        "APPLICATION_TOOLS": Category.APPLICATION_TOOLS,
-        "APPLICATION_TRAVEL_AND_LOCAL": Category.APPLICATION_TRAVEL_AND_LOCAL,
-        "APPLICATION_VIDEO_PLAYERS": Category.APPLICATION_VIDEO_PLAYERS,
-        "APPLICATION_WEATHER": Category.APPLICATION_WEATHER,
-    }
+    try:
+        return {
+            "GAME": Category.GAME,
+            "APPLICATION": Category.APPLICATION,
+            "GAME_ACTION": Category.GAME_ACTION,
+            "GAME_ADVENTURE": Category.GAME_ADVENTURE,
+            "GAME_ARCADE": Category.GAME_ARCADE,
+            "GAME_BOARD": Category.GAME_BOARD,
+            "GAME_CARD": Category.GAME_CARD,
+            "GAME_CASINO": Category.GAME_CASINO,
+            "GAME_CASUAL": Category.GAME_CASUAL,
+            "GAME_EDUCATIONAL": Category.GAME_EDUCATIONAL,
+            "GAME_MUSIC": Category.GAME_MUSIC,
+            "GAME_PUZZLE": Category.GAME_PUZZLE,
+            "GAME_RACING": Category.GAME_RACING,
+            "GAME_ROLE_PLAYING": Category.GAME_ROLE_PLAYING,
+            "GAME_SIMULATION": Category.GAME_SIMULATION,
+            "GAME_SPORTS": Category.GAME_SPORTS,
+            "GAME_STRATEGY": Category.GAME_STRATEGY,
+            "GAME_TRIVIA": Category.GAME_TRIVIA,
+            "GAME_WORD": Category.GAME_WORD,
+            "APPLICATION_ART_AND_DESIGN": getattr(Category, 'APPLICATION_ART_AND_DESIGN', None),
+            "APPLICATION_AUTO_AND_VEHICLES": getattr(Category, 'APPLICATION_AUTO_AND_VEHICLES', None),
+            "APPLICATION_BEAUTY": getattr(Category, 'APPLICATION_BEAUTY', None),
+            "APPLICATION_BOOKS_AND_REFERENCE": getattr(Category, 'APPLICATION_BOOKS_AND_REFERENCE', None),
+            "APPLICATION_BUSINESS": getattr(Category, 'APPLICATION_BUSINESS', None),
+            "APPLICATION_COMICS": getattr(Category, 'APPLICATION_COMICS', None),
+            "APPLICATION_COMMUNICATION": getattr(Category, 'APPLICATION_COMMUNICATION', None),
+            "APPLICATION_DATING": getattr(Category, 'APPLICATION_DATING', None),
+            "APPLICATION_EDUCATION": getattr(Category, 'APPLICATION_EDUCATION', None),
+            "APPLICATION_ENTERTAINMENT": getattr(Category, 'APPLICATION_ENTERTAINMENT', None),
+            "APPLICATION_EVENTS": getattr(Category, 'APPLICATION_EVENTS', None),
+            "APPLICATION_FINANCE": getattr(Category, 'APPLICATION_FINANCE', None),
+            "APPLICATION_FOOD_AND_DRINK": getattr(Category, 'APPLICATION_FOOD_AND_DRINK', None),
+            "APPLICATION_HEALTH_AND_FITNESS": getattr(Category, 'APPLICATION_HEALTH_AND_FITNESS', None),
+            "APPLICATION_HOUSE_AND_HOME": getattr(Category, 'APPLICATION_HOUSE_AND_HOME', None),
+            "APPLICATION_LIBRARIES_AND_DEMO": getattr(Category, 'APPLICATION_LIBRARIES_AND_DEMO', None),
+            "APPLICATION_LIFESTYLE": getattr(Category, 'APPLICATION_LIFESTYLE', None),
+            "APPLICATION_MAPS_AND_NAVIGATION": getattr(Category, 'APPLICATION_MAPS_AND_NAVIGATION', None),
+            "APPLICATION_MEDICAL": getattr(Category, 'APPLICATION_MEDICAL', None),
+            "APPLICATION_NEWS_AND_MAGAZINES": getattr(Category, 'APPLICATION_NEWS_AND_MAGAZINES', None),
+            "APPLICATION_PARENTING": getattr(Category, 'APPLICATION_PARENTING', None),
+            "APPLICATION_PERSONALIZATION": getattr(Category, 'APPLICATION_PERSONALIZATION', None),
+            "APPLICATION_PHOTOGRAPHY": getattr(Category, 'APPLICATION_PHOTOGRAPHY', None),
+            "APPLICATION_PRODUCTIVITY": getattr(Category, 'APPLICATION_PRODUCTIVITY', None),
+            "APPLICATION_SHOPPING": getattr(Category, 'APPLICATION_SHOPPING', None),
+            "APPLICATION_SOCIAL": getattr(Category, 'APPLICATION_SOCIAL', None),
+            "APPLICATION_SPORTS": getattr(Category, 'APPLICATION_SPORTS', None),
+            "APPLICATION_TOOLS": getattr(Category, 'APPLICATION_TOOLS', None),
+            "APPLICATION_TRAVEL_AND_LOCAL": getattr(Category, 'APPLICATION_TRAVEL_AND_LOCAL', None),
+            "APPLICATION_VIDEO_PLAYERS": getattr(Category, 'APPLICATION_VIDEO_PLAYERS', None),
+            "APPLICATION_WEATHER": getattr(Category, 'APPLICATION_WEATHER', None),
+        }
+    except Exception as e:
+        logger.error(f"Error creating category map: {e}")
+        return {}
 
 
 def get_category_list() -> List[Dict[str, str]]:
     """사용 가능한 카테고리 목록 반환"""
-    category_map = _get_category_map()
-    categories = []
-    for key in category_map.keys():
-        categories.append({
-            "key": key,
-            "name": key.replace("_", " ").title(),
-            "type": "GAME" if key.startswith("GAME") else "APPLICATION"
-        })
-    return categories
+    # google-play-scraper가 설치되어 있지 않으면 기본 목록 반환
+    if not SCRAPER_AVAILABLE or not Category:
+        logger.info("google-play-scraper not available, returning default categories")
+        return DEFAULT_CATEGORIES
+    
+    # 라이브러리가 있으면 동적으로 생성
+    try:
+        category_map = _get_category_map()
+        if category_map:
+            categories = []
+            for key in category_map.keys():
+                if category_map[key] is not None:  # None인 항목 제외
+                    categories.append({
+                        "key": key,
+                        "name": key.replace("_", " ").title(),
+                        "type": "GAME" if key.startswith("GAME") else "APPLICATION"
+                    })
+            return categories
+    except Exception as e:
+        logger.error(f"Error getting category list: {e}")
+    
+    # 에러 발생 시 기본 목록 반환
+    return DEFAULT_CATEGORIES
 
 
 async def fetch_top_apps_real(
