@@ -1,88 +1,68 @@
 # OpenAI API 키 설정 가이드
 
-## 현재 상태
+## 문제
 
-✅ API 키 파일은 존재합니다 (`.env.local`)
-❌ API 키가 유효하지 않거나 만료되었습니다
+GPT 분석 기능이 작동하지 않는 경우, OpenAI API 키가 설정되지 않았거나 유효하지 않을 수 있습니다.
 
-## 해결 방법
+## 로컬 개발 환경
 
-### 1. 올바른 API 키 확인
+### 1. API 키 확인
 
-1. [OpenAI Platform](https://platform.openai.com/account/api-keys)에 접속
-2. 로그인 후 "API keys" 섹션으로 이동
-3. 새 API 키 생성 또는 기존 키 확인
-4. API 키는 `sk-`로 시작하는 긴 문자열입니다
+```bash
+python3 check_api_key.py
+```
 
 ### 2. API 키 설정
 
-#### 방법 1: .env.local 파일 수정 (권장)
-```bash
-# .env.local 파일을 열어서 수정
-nano .env.local
-# 또는
-open .env.local
-```
+프로젝트 루트에 `.env` 파일을 생성하고 다음 내용을 추가하세요:
 
-다음 형식으로 저장:
 ```
 OPENAI_API_KEY=sk-your-actual-api-key-here
 ```
 
-#### 방법 2: .env 파일 생성
-```bash
-echo "OPENAI_API_KEY=sk-your-actual-api-key-here" > .env
-```
+또는 `.env.local` 파일에 설정할 수도 있습니다.
 
-### 3. API 키 확인
+### 3. API 키 가져오기
 
-설정 후 다음 명령어로 확인:
-```bash
-python3 check_api_key.py
-```
+1. https://platform.openai.com/api-keys 접속
+2. 계정 로그인
+3. "Create new secret key" 클릭
+4. 생성된 키를 복사하여 `.env` 파일에 붙여넣기
 
-성공 메시지가 나오면 정상입니다!
+## Railway 배포 환경
 
-## 중요 사항
+### 1. Railway 대시보드 접속
 
-- ✅ API 키는 `sk-`로 시작해야 합니다
-- ✅ 공백이나 따옴표 없이 직접 입력
-- ✅ `.env.local` 또는 `.env` 파일에 저장
-- ✅ API 키는 절대 공유하지 마세요
-- ✅ 만료되거나 유효하지 않은 키는 401 오류 발생
+1. https://railway.app 접속
+2. 프로젝트 선택
+3. "Variables" 탭 클릭
 
-## API 키 형식 예시
+### 2. 환경 변수 추가
 
-```
-OPENAI_API_KEY=sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yz
-```
+- **Key**: `OPENAI_API_KEY`
+- **Value**: 실제 OpenAI API 키 (sk-로 시작)
 
-## 문제 해결
+### 3. 재배포
 
-### 401 오류 (Invalid API Key)
-- API 키가 올바른지 확인
-- OpenAI 계정에 충분한 크레딧이 있는지 확인
-- API 키가 만료되지 않았는지 확인
+환경 변수를 추가한 후, Railway가 자동으로 재배포합니다.
 
-### API 키를 찾을 수 없음
-- `.env` 또는 `.env.local` 파일이 프로젝트 루트에 있는지 확인
-- 파일 이름에 오타가 없는지 확인
-- `OPENAI_API_KEY=` 형식이 올바른지 확인
+## 확인 방법
 
-## 테스트
+### 로컬
 
-API 키 설정 후 다음 명령어로 테스트:
 ```bash
 python3 check_api_key.py
 ```
 
-성공하면:
-```
-✅ API 키가 설정되어 있습니다
-✅ OpenAI 클라이언트 생성 성공
-✅ OpenAI API 연결 성공!
-```
+### Railway
 
+Railway 로그에서 다음 메시지를 확인하세요:
+- `OpenAI API key not found` - API 키가 설정되지 않음
+- `OpenAI service not available` - OpenAI 서비스 사용 불가
+- `Error code: 401` - API 키가 유효하지 않음
 
+## 참고
 
-
+- API 키는 절대 Git에 커밋하지 마세요 (`.env` 파일은 `.gitignore`에 포함되어 있습니다)
+- Railway에서는 환경 변수로 설정해야 합니다
+- API 키를 변경한 후에는 애플리케이션을 재시작해야 합니다
