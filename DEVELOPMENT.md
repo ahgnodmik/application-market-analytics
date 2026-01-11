@@ -8,8 +8,8 @@
 # Python 의존성 설치
 pip install -r requirements.txt
 
-# Netlify CLI 설치 (선택사항 - Netlify Functions 로컬 테스트용)
-npm install -g netlify-cli
+# Railway 배포
+# Railway에 배포되어 있습니다.
 ```
 
 ### 2. 환경 변수 설정
