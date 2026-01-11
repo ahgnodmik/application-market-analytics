@@ -105,37 +105,50 @@ async function loadFetchStatus() {
     try {
         // 마지막 수집 시간
         const lastFetchRes = await fetch('/api/playstore/last-fetch');
-        const lastFetchData = await lastFetchRes.json();
         
-        if (lastFetchData.last_fetch) {
-            const lastFetch = new Date(lastFetchData.last_fetch);
-            document.getElementById('last-fetch-time').textContent = 
-                `마지막 수집: ${lastFetch.toLocaleString('ko-KR')}`;
+        if (lastFetchRes.ok) {
+            const lastFetchData = await lastFetchRes.json();
+            
+            if (lastFetchData.last_fetch) {
+                const lastFetch = new Date(lastFetchData.last_fetch);
+                document.getElementById('last-fetch-time').textContent = 
+                    `마지막 수집: ${lastFetch.toLocaleString('ko-KR')}`;
+            } else {
+                document.getElementById('last-fetch-time').textContent = '마지막 수집: 없음';
+            }
         } else {
-            document.getElementById('last-fetch-time').textContent = '마지막 수집: 없음';
+            console.error('Failed to fetch last-fetch:', lastFetchRes.status);
+            document.getElementById('last-fetch-time').textContent = '마지막 수집: 확인 불가';
         }
 
         // 수집 상태
         const statusRes = await fetch('/api/playstore/status');
-        const statusData = await statusRes.json();
         
-        if (statusData.can_fetch) {
-            document.getElementById('fetch-status-text').textContent = '오늘은 월요일입니다. 수집 가능합니다.';
-            document.getElementById('fetch-status-text').className = 'text-sm text-green-600';
-        } else {
-            document.getElementById('fetch-status-text').textContent = 
-                `다음 수집: ${statusData.next_monday || '월요일'}`;
-            document.getElementById('fetch-status-text').className = 'text-sm text-notion-text-light';
-        }
+        if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            
+            if (statusData.can_fetch) {
+                document.getElementById('fetch-status-text').textContent = '오늘은 월요일입니다. 수집 가능합니다.';
+                document.getElementById('fetch-status-text').className = 'text-sm text-green-600';
+            } else {
+                document.getElementById('fetch-status-text').textContent = 
+                    `다음 수집: ${statusData.next_monday ? new Date(statusData.next_monday).toLocaleDateString('ko-KR') : '월요일'}`;
+                document.getElementById('fetch-status-text').className = 'text-sm text-notion-text-light';
+            }
 
-        if (statusData.next_monday) {
-            document.getElementById('next-fetch-time').textContent = 
-                `다음 수집: ${new Date(statusData.next_monday).toLocaleDateString('ko-KR')}`;
+            if (statusData.next_monday) {
+                document.getElementById('next-fetch-time').textContent = 
+                    `다음 수집: ${new Date(statusData.next_monday).toLocaleDateString('ko-KR')}`;
+            }
+        } else {
+            console.error('Failed to fetch status:', statusRes.status);
+            document.getElementById('fetch-status-text').textContent = '상태를 불러올 수 없습니다.';
         }
 
     } catch (error) {
         console.error('Error loading fetch status:', error);
         document.getElementById('fetch-status-text').textContent = '상태를 불러올 수 없습니다.';
+        document.getElementById('last-fetch-time').textContent = '마지막 수집: 오류';
     }
 }
 
@@ -233,7 +246,15 @@ async function loadRecentApps() {
     
     try {
         const response = await fetch('/api/apps/playstore?limit=5');
-        const apps = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        // 응답이 배열인지 확인
+        const apps = Array.isArray(data) ? data : [];
         
         if (apps.length === 0) {
             container.innerHTML = `

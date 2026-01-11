@@ -304,10 +304,18 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
     """
     마지막으로 앱 순위를 가져온 시간 확인
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
-        latest_app = db.query(App).filter(App.package_name.isnot(None)).order_by(App.id.desc()).first()
+        # Play Store 앱만 조회
+        latest_app = db.query(App).filter(
+            App.package_name.isnot(None),
+            App.package_name != ""
+        ).order_by(App.id.desc()).first()
         
         if not latest_app:
+            logger.info("No Play Store apps found in database")
             return {
                 "last_fetch": None,
                 "message": "아직 앱 데이터를 가져온 적이 없습니다."
@@ -328,7 +336,8 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
         
         try:
             can_fetch_now = should_fetch_this_week()
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Error checking should_fetch_this_week: {e}")
             can_fetch_now = False
         
         # created_at 필드가 있으면 사용, 없으면 None
@@ -336,10 +345,16 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
         if hasattr(latest_app, 'created_at'):
             created_at_value = getattr(latest_app, 'created_at', None)
             if created_at_value:
-                if isinstance(created_at_value, datetime):
-                    last_fetch = created_at_value.isoformat()
-                else:
-                    last_fetch = str(created_at_value)
+                try:
+                    if isinstance(created_at_value, datetime):
+                        last_fetch = created_at_value.isoformat()
+                    else:
+                        last_fetch = str(created_at_value)
+                except Exception as e:
+                    logger.warning(f"Error formatting created_at: {e}")
+                    last_fetch = None
+        
+        logger.info(f"Last fetch info retrieved: last_fetch={last_fetch}, can_fetch_now={can_fetch_now}")
         
         return {
             "last_fetch": last_fetch,
@@ -347,12 +362,14 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
             "can_fetch_now": can_fetch_now
         }
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Error in get_last_fetch_info: {e}", exc_info=True)
         import traceback
-        logger.error(traceback.format_exc())
-        raise HTTPException(status_code=500, detail=f"마지막 수집 정보를 가져오는 중 오류가 발생했습니다: {str(e)}")
+        error_detail = traceback.format_exc()
+        logger.error(f"Traceback: {error_detail}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"마지막 수집 정보를 가져오는 중 오류가 발생했습니다: {str(e)}"
+        )
 
 
 @router.get("/status")
