@@ -32,15 +32,9 @@ chmod +x run.sh
 ./run.sh
 ```
 
-### Netlify 배포
+### Railway 배포
 
-```bash
-# Netlify Functions 로컬 테스트
-npm run netlify:dev
-
-# 프로덕션 배포
-npm run netlify:deploy:prod
-```
+Railway에 배포되어 있습니다.
 
 ### 브라우저 접속
 
