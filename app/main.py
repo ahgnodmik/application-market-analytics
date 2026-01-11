@@ -111,15 +111,40 @@ async def health_check():
     # OpenAI API 키 체크
     try:
         from app.config import settings
-        if settings.OPENAI_API_KEY:
-            # API 키가 설정되어 있는지만 확인 (실제 API 호출은 하지 않음)
-            api_key_prefix = settings.OPENAI_API_KEY[:10] if len(settings.OPENAI_API_KEY) > 10 else "***"
-            health_status["openai"] = f"configured (prefix: {api_key_prefix}...)"
+        import os
+        
+        # 환경 변수에서 직접 확인
+        env_key = os.getenv("OPENAI_API_KEY")
+        settings_key = settings.OPENAI_API_KEY
+        
+        health_status["openai"] = {}
+        
+        if env_key:
+            env_prefix = env_key[:15] if len(env_key) > 15 else "***"
+            env_suffix = env_key[-10:] if len(env_key) > 10 else "***"
+            health_status["openai"]["env_var"] = f"set (prefix: {env_prefix}..., suffix: ...{env_suffix})"
         else:
-            health_status["openai"] = "not_configured"
+            health_status["openai"]["env_var"] = "not_set"
+        
+        if settings_key:
+            settings_prefix = settings_key[:15] if len(settings_key) > 15 else "***"
+            settings_suffix = settings_key[-10:] if len(settings_key) > 10 else "***"
+            health_status["openai"]["settings"] = f"set (prefix: {settings_prefix}..., suffix: ...{settings_suffix})"
+        else:
+            health_status["openai"]["settings"] = "not_set"
+        
+        # 키 길이 확인
+        if env_key:
+            health_status["openai"]["env_key_length"] = len(env_key)
+        if settings_key:
+            health_status["openai"]["settings_key_length"] = len(settings_key)
+        
+        # 키가 일치하는지 확인
+        if env_key and settings_key:
+            health_status["openai"]["keys_match"] = env_key == settings_key
+        
     except Exception as e:
-        health_status["openai"] = "error"
-        health_status["openai_error"] = str(e)
+        health_status["openai"] = {"error": str(e)}
     
     return health_status
 

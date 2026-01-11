@@ -53,14 +53,32 @@ async def analyze_category_with_gpt(
         
         # API 키가 설정되었는지 추가 확인
         from app.config import settings
-        if not settings.OPENAI_API_KEY:
-            logger.error("OPENAI_API_KEY is not set in settings")
+        import os
+        
+        env_key = os.getenv("OPENAI_API_KEY")
+        settings_key = settings.OPENAI_API_KEY
+        
+        if not settings_key and not env_key:
+            logger.error("OPENAI_API_KEY is not set in both settings and environment")
             return {
                 "success": False,
                 "error": "OpenAI API 키가 설정되지 않았습니다. Railway Variables에서 OPENAI_API_KEY를 확인해주세요."
             }
         
-        logger.info(f"OpenAI client initialized (API key prefix: {settings.OPENAI_API_KEY[:10]}...)")
+        # 실제 사용되는 키 확인
+        actual_key = settings_key or env_key
+        if actual_key:
+            key_prefix = actual_key[:15] if len(actual_key) > 15 else "***"
+            key_suffix = actual_key[-10:] if len(actual_key) > 10 else "***"
+            logger.info(f"OpenAI client initialized (API key: {key_prefix}...{key_suffix}, length: {len(actual_key)})")
+            
+            # 키 길이 검증 (일반적으로 OpenAI API 키는 50자 이상)
+            if len(actual_key) < 40:
+                logger.warning(f"API key seems too short (length: {len(actual_key)}), may be incomplete")
+                return {
+                    "success": False,
+                    "error": f"OpenAI API 키가 너무 짧습니다 (길이: {len(actual_key)}). 키 전체를 복사했는지 확인해주세요."
+                }
         
         # 분석할 앱 데이터 요약 (너무 길면 잘라냄)
         apps_summary = []
