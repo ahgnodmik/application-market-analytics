@@ -2,43 +2,50 @@
 
 {% block content %}
 <div class="space-y-6">
+    <!-- 헤더 -->
     <div>
-        <h2 class="text-3xl font-bold text-notion-text mb-2">분석 및 추천</h2>
-        <p class="text-notion-textLight">필터 조건을 설정하여 최적의 앱 타입을 찾아보세요</p>
+        <h1 class="text-3xl font-semibold text-notion-text mb-2">분석</h1>
+        <p class="text-notion-text-light text-base">필터 조건을 설정하여 최적의 앱 타입을 찾아보세요</p>
     </div>
     
-    <div class="bg-white border border-notion-border rounded-lg p-6">
-        <h3 class="text-xl font-semibold text-notion-text mb-4">필터 설정</h3>
+    <!-- 필터 설정 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">필터 설정</h2>
         <form id="filter-form" class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-notion-text mb-2">최소 시장성 점수</label>
-                <input type="number" id="min-marketability" value="6" step="0.1" min="0" max="10" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                <input type="number" id="min-marketability" value="6" step="0.1" min="0" max="10" 
+                       class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
             </div>
             <div>
                 <label class="block text-sm font-medium text-notion-text mb-2">최대 구현 난이도</label>
-                <input type="number" id="max-difficulty" value="1.0" step="0.1" min="0" max="2" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                <input type="number" id="max-difficulty" value="1.0" step="0.1" min="0" max="2" 
+                       class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
             </div>
             <div>
                 <label class="block text-sm font-medium text-notion-text mb-2">최대 핵심 기능 수</label>
-                <input type="number" id="max-features" value="5" min="1" max="10" class="w-full px-3 py-2 border border-notion-border rounded-md focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                <input type="number" id="max-features" value="5" min="1" max="10" 
+                       class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
             </div>
             <div class="flex items-end">
-                <button type="submit" class="w-full px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">적용</button>
+                <button type="submit" class="w-full notion-button notion-button-blue">적용</button>
             </div>
         </form>
     </div>
     
-    <div class="bg-white border border-notion-border rounded-lg p-6">
-        <h3 class="text-xl font-semibold text-notion-text mb-4">2축 매트릭스</h3>
-        <div id="matrix-chart" class="min-h-[400px]">
-            <p class="text-notion-textLight">로딩 중...</p>
+    <!-- 2축 매트릭스 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">2축 매트릭스</h2>
+        <div id="matrix-chart" class="min-h-[400px] flex items-center justify-center">
+            <p class="text-notion-text-light">로딩 중...</p>
         </div>
     </div>
     
-    <div class="bg-white border border-notion-border rounded-lg p-6">
-        <h3 class="text-xl font-semibold text-notion-text mb-4">추천 앱 타입</h3>
+    <!-- 추천 앱 타입 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">추천 앱 타입</h2>
         <div id="recommendations-list" class="space-y-4">
-            <p class="text-notion-textLight">필터를 적용하여 추천을 확인하세요.</p>
+            <p class="text-notion-text-light">필터를 적용하여 추천을 확인하세요.</p>
         </div>
     </div>
 </div>

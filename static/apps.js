@@ -2,37 +2,23 @@
 
 let currentAppId = null;
 
-// 페이지 로드 시 앱 목록 불러오기
 document.addEventListener('DOMContentLoaded', async () => {
     await loadApps();
-    
-    // 앱 추가 폼 제출
-    document.getElementById('add-app-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await addApp();
-    });
-    
-    // CSV 업로드 폼 제출
-    document.getElementById('upload-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await uploadCSV();
-    });
 });
 
 async function loadApps() {
     const listEl = document.getElementById('apps-list');
-    listEl.innerHTML = '<p class="text-notion-textLight">로딩 중...</p>';
+    listEl.innerHTML = '<p class="text-notion-text-light">로딩 중...</p>';
     
     try {
-        // Play Store에서 가져온 앱만 로드
         const response = await fetch('/api/apps/playstore?limit=1000');
         const apps = await response.json();
         
         if (apps.length === 0) {
             listEl.innerHTML = `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-                    <p class="text-yellow-800 mb-4">Play Store에서 가져온 앱이 없습니다.</p>
-                    <a href="/category-analysis" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors inline-block">
+                <div class="text-center py-12">
+                    <p class="text-notion-text-light mb-4">Play Store에서 가져온 앱이 없습니다.</p>
+                    <a href="/category-analysis" class="notion-button notion-button-blue no-underline inline-block">
                         카테고리 분석에서 앱 가져오기
                     </a>
                 </div>
@@ -41,19 +27,27 @@ async function loadApps() {
         }
         
         listEl.innerHTML = apps.map(app => `
-            <div class="bg-white border border-notion-border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer" onclick="showAppDetail(${app.id})">
-                <div class="flex justify-between items-start">
-                    <div class="flex-1">
-                        <h3 class="font-semibold text-lg text-notion-text mb-2">${app.name}</h3>
-                        <div class="flex flex-wrap gap-3 text-sm text-notion-textLight">
-                            <span>${app.category || '카테고리 없음'}</span>
-                            <span>평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'}</span>
-                            <span>리뷰: ${app.review_count ? app.review_count.toLocaleString() : 'N/A'}</span>
-                        </div>
+            <div class="flex items-center justify-between p-4 border border-notion-border rounded hover:bg-notion-hover transition-colors cursor-pointer" onclick="showAppDetail(${app.id})">
+                <div class="flex-1">
+                    <h3 class="font-semibold text-lg text-notion-text mb-1">${app.name}</h3>
+                    <div class="text-sm text-notion-text-light">
+                        ${app.category || '카테고리 없음'} • 
+                        평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐ • 
+                        리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}개
                     </div>
+                    ${app.description ? `<p class="text-sm text-notion-text-light mt-2 line-clamp-2">${app.description.substring(0, 150)}...</p>` : ''}
+                </div>
+                <div class="flex flex-col gap-2 ml-6 items-end">
                     <div class="flex gap-2">
-                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">난이도: ${app.difficulty_score.toFixed(2)}</span>
-                        <span class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">시장성: ${app.marketability_score.toFixed(2)}</span>
+                        <span class="px-2 py-1 text-xs rounded ${app.difficulty_score <= 1.0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'}">
+                            난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
+                        </span>
+                        <span class="px-2 py-1 text-xs rounded ${app.marketability_score >= 6.0 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-50 text-gray-700 border border-gray-200'}">
+                            시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
+                        </span>
+                    </div>
+                    <div class="text-xs text-notion-text-light">
+                        ${app.price_model === 'free' ? '무료' : app.price_model === 'paid' ? '유료' : app.price_model === 'subscription' ? '구독' : 'N/A'}
                     </div>
                 </div>
             </div>
@@ -64,231 +58,83 @@ async function loadApps() {
     }
 }
 
-async function addApp() {
-    const form = document.getElementById('add-app-form');
-    const formData = new FormData(form);
-    
-    const appData = {
-        name: formData.get('name'),
-        category: formData.get('category') || null,
-        rating: formData.get('rating') ? parseFloat(formData.get('rating')) : null,
-        review_count: formData.get('review_count') ? parseInt(formData.get('review_count')) : null,
-        price_model: formData.get('price_model') || null,
-        last_update: formData.get('last_update') || null,
-        description: formData.get('description') || null
-    };
-    
-    try {
-        const response = await fetch('/api/apps/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(appData)
-        });
-        
-        if (response.ok) {
-            const app = await response.json();
-            closeModal('add-app-modal');
-            form.reset();
-            await loadApps();
-            alert('앱이 추가되었습니다.');
-        } else {
-            const error = await response.json();
-            alert(`오류: ${error.detail || '앱 추가에 실패했습니다.'}`);
-        }
-    } catch (error) {
-        console.error('Error adding app:', error);
-        alert('앱 추가 중 오류가 발생했습니다.');
-    }
-}
-
-async function uploadCSV() {
-    const form = document.getElementById('upload-form');
-    const formData = new FormData(form);
-    const resultEl = document.getElementById('upload-result');
-    
-    resultEl.innerHTML = '<p class="text-notion-textLight">업로드 중...</p>';
-    
-    try {
-        const response = await fetch('/api/upload/csv', {
-            method: 'POST',
-            body: formData
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            resultEl.innerHTML = `
-                <div class="p-4 bg-green-50 border border-green-200 rounded-md mb-4">
-                    <p class="text-green-800 font-medium">${result.message}</p>
-                    <p class="text-sm text-green-600 mt-1">생성된 앱 수: ${result.created_count}</p>
-                    ${result.errors ? `<p class="text-sm text-orange-600 mt-1">오류 발생: ${result.errors.length}건</p>` : ''}
-                </div>
-            `;
-            form.reset();
-            await loadApps();
-            setTimeout(() => {
-                closeModal('upload-modal');
-                resultEl.innerHTML = '';
-            }, 2000);
-        } else {
-            resultEl.innerHTML = `<div class="p-4 bg-red-50 border border-red-200 rounded-md"><p class="text-red-800">오류: ${result.detail}</p></div>`;
-        }
-    } catch (error) {
-        console.error('Error uploading CSV:', error);
-        resultEl.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-md"><p class="text-red-800">CSV 업로드 중 오류가 발생했습니다.</p></div>';
-    }
-}
-
 async function showAppDetail(appId) {
     currentAppId = appId;
     const modal = document.getElementById('app-detail-modal');
-    const contentEl = document.getElementById('app-detail-content');
+    const content = document.getElementById('app-detail-content');
+    
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    content.innerHTML = '<p class="text-notion-text-light">로딩 중...</p>';
     
     try {
-        const response = await fetch(`/api/apps/${appId}`);
-        const app = await response.json();
+        const appRes = await fetch(`/api/apps/${appId}`);
+        const app = await appRes.json();
         
-        const featuresResponse = await fetch(`/api/apps/${appId}/features`);
-        const features = await featuresResponse.json();
+        const featuresRes = await fetch(`/api/apps/${appId}/features`);
+        const features = await featuresRes.json();
         
-        contentEl.innerHTML = `
+        content.innerHTML = `
             <div class="space-y-6">
                 <div>
-                    <h3 class="text-2xl font-bold text-notion-text mb-4">${app.name}</h3>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
+                    <h2 class="text-2xl font-semibold text-notion-text mb-4">${app.name}</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                         <div>
-                            <span class="text-notion-textLight">카테고리:</span>
-                            <span class="ml-2 text-notion-text">${app.category || 'N/A'}</span>
+                            <div class="text-sm text-notion-text-light mb-1">카테고리</div>
+                            <div class="font-medium">${app.category || 'N/A'}</div>
                         </div>
                         <div>
-                            <span class="text-notion-textLight">평점:</span>
-                            <span class="ml-2 text-notion-text">${app.rating ? app.rating.toFixed(1) : 'N/A'}</span>
+                            <div class="text-sm text-notion-text-light mb-1">평점</div>
+                            <div class="font-medium">${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐</div>
                         </div>
                         <div>
-                            <span class="text-notion-textLight">리뷰 수:</span>
-                            <span class="ml-2 text-notion-text">${app.review_count ? app.review_count.toLocaleString() : 'N/A'}</span>
+                            <div class="text-sm text-notion-text-light mb-1">리뷰 수</div>
+                            <div class="font-medium">${app.review_count ? app.review_count.toLocaleString() : '0'}개</div>
                         </div>
                         <div>
-                            <span class="text-notion-textLight">가격 모델:</span>
-                            <span class="ml-2 text-notion-text">${app.price_model || 'N/A'}</span>
+                            <div class="text-sm text-notion-text-light mb-1">가격 모델</div>
+                            <div class="font-medium">${app.price_model === 'free' ? '무료' : app.price_model === 'paid' ? '유료' : app.price_model === 'subscription' ? '구독' : 'N/A'}</div>
                         </div>
                         <div>
-                            <span class="text-notion-textLight">난이도 점수:</span>
-                            <span class="ml-2 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">${app.difficulty_score.toFixed(2)}</span>
+                            <div class="text-sm text-notion-text-light mb-1">난이도 점수</div>
+                            <div class="font-medium">${app.difficulty_score ? app.difficulty_score.toFixed(2) : '0.00'}</div>
                         </div>
                         <div>
-                            <span class="text-notion-textLight">시장성 점수:</span>
-                            <span class="ml-2 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">${app.marketability_score.toFixed(2)}</span>
+                            <div class="text-sm text-notion-text-light mb-1">시장성 점수</div>
+                            <div class="font-medium">${app.marketability_score ? app.marketability_score.toFixed(2) : '0.00'}</div>
                         </div>
                     </div>
-                    ${app.description ? `<p class="mt-4 text-notion-text"><strong>설명:</strong> ${app.description}</p>` : ''}
                 </div>
                 
-                <div class="border-t border-notion-border pt-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h4 class="text-lg font-semibold text-notion-text">기능 목록</h4>
-                        <button onclick="showAddFeatureModal()" class="px-3 py-1.5 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors text-sm">기능 추가</button>
-                    </div>
-                    <div id="features-list" class="space-y-2">
-                        ${features.length === 0 ? '<p class="text-notion-textLight">기능이 없습니다.</p>' : ''}
-                        ${features.map(f => `
-                            <div class="flex justify-between items-center p-3 bg-notion-sidebar rounded-md">
-                                <span class="text-notion-text"><strong>${f.name}</strong> (${f.feature_type}) - 난이도: ${f.difficulty_score.toFixed(2)}</span>
-                                <button onclick="deleteFeature(${f.id})" class="px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm">삭제</button>
-                            </div>
-                        `).join('')}
-                    </div>
+                ${app.description ? `
+                <div>
+                    <h3 class="text-lg font-semibold text-notion-text mb-2">설명</h3>
+                    <p class="text-notion-text-light whitespace-pre-wrap">${app.description}</p>
+                </div>
+                ` : ''}
+                
+                <div>
+                    <h3 class="text-lg font-semibold text-notion-text mb-2">기능 (${features.length}개)</h3>
+                    ${features.length > 0 ? `
+                        <div class="space-y-2">
+                            ${features.map(f => `
+                                <div class="p-3 border border-notion-border rounded">
+                                    <div class="font-medium text-notion-text">${f.name}</div>
+                                    <div class="text-sm text-notion-text-light mt-1">
+                                        타입: ${f.feature_type || 'N/A'} • 
+                                        난이도: ${f.difficulty_score ? f.difficulty_score.toFixed(2) : 'N/A'}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p class="text-notion-text-light">기능이 없습니다.</p>'}
                 </div>
             </div>
         `;
-        
-        showModal('app-detail-modal');
     } catch (error) {
         console.error('Error loading app detail:', error);
-        alert('앱 상세 정보를 불러오는 중 오류가 발생했습니다.');
+        content.innerHTML = '<p class="text-red-600">앱 정보를 불러오는 중 오류가 발생했습니다.</p>';
     }
 }
 
-async function deleteFeature(featureId) {
-    if (!confirm('이 기능을 삭제하시겠습니까?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/apps/${currentAppId}/features/${featureId}`, {
-            method: 'DELETE'
-        });
-        
-        if (response.ok) {
-            await showAppDetail(currentAppId);
-        } else {
-            alert('기능 삭제에 실패했습니다.');
-        }
-    } catch (error) {
-        console.error('Error deleting feature:', error);
-        alert('기능 삭제 중 오류가 발생했습니다.');
-    }
-}
-
-function showAddAppModal() {
-    showModal('add-app-modal');
-}
-
-function showUploadModal() {
-    showModal('upload-modal');
-}
-
-function showAddFeatureModal() {
-    const featureName = prompt('기능 이름:');
-    if (!featureName) return;
-    
-    const featureType = prompt('기능 타입 (input, storage, query, notification, media):');
-    if (!featureType) return;
-    
-    const description = prompt('기능 설명 (선택사항):') || '';
-    
-    addFeature({
-        name: featureName,
-        feature_type: featureType,
-        description: description
-    });
-}
-
-async function addFeature(featureData) {
-    try {
-        const response = await fetch(`/api/apps/${currentAppId}/features`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(featureData)
-        });
-        
-        if (response.ok) {
-            await showAppDetail(currentAppId);
-        } else {
-            const error = await response.json();
-            alert(`오류: ${error.detail || '기능 추가에 실패했습니다.'}`);
-        }
-    } catch (error) {
-        console.error('Error adding feature:', error);
-        alert('기능 추가 중 오류가 발생했습니다.');
-    }
-}
-
-function showModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    document.getElementById(modalId).classList.add('flex');
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).classList.remove('flex');
-}
-
-
-
-
-
+window.showAppDetail = showAppDetail;

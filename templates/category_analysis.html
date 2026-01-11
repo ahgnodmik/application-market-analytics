@@ -1,41 +1,38 @@
 {% extends "base.html" %}
 
-{% block title %}카테고리별 분석{% endblock %}
-
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">카테고리별 시장 분석</h1>
-        <p class="text-gray-600">Play Store 카테고리별 상위 앱을 분석하고 GPT로 인사이트를 얻어보세요</p>
+<div class="space-y-6">
+    <!-- 헤더 -->
+    <div>
+        <h1 class="text-3xl font-semibold text-notion-text mb-2">카테고리 분석</h1>
+        <p class="text-notion-text-light text-base">Play Store 카테고리별 상위 앱을 분석하고 GPT로 인사이트를 얻어보세요</p>
     </div>
 
-    <!-- 카테고리 선택 및 분석 섹션 -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">카테고리 분석</h2>
+    <!-- 카테고리 선택 및 분석 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">카테고리 분석</h2>
         
-        <!-- 카테고리 목록 로드 -->
         <div class="mb-4">
-            <button id="loadCategoriesBtn" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+            <button id="loadCategoriesBtn" class="notion-button notion-button-blue">
                 카테고리 목록 불러오기
             </button>
             <div id="categoriesContainer" class="mt-4 hidden">
-                <label class="block text-sm font-medium text-gray-700 mb-2">분석할 카테고리 선택:</label>
-                <select id="categorySelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <label class="block text-sm font-medium text-notion-text mb-2">분석할 카테고리 선택:</label>
+                <select id="categorySelect" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
                     <option value="">카테고리를 선택하세요</option>
                 </select>
             </div>
         </div>
 
-        <!-- 분석 옵션 -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">분석할 앱 수:</label>
+                <label class="block text-sm font-medium text-notion-text mb-2">분석할 앱 수:</label>
                 <input type="number" id="analysisLimit" value="50" min="10" max="100" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                       class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">순위 타입:</label>
-                <select id="rankingType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label class="block text-sm font-medium text-notion-text mb-2">순위 타입:</label>
+                <select id="rankingType" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
                     <option value="top_free">무료 앱</option>
                     <option value="top_paid">유료 앱</option>
                     <option value="top_grossing">수익순</option>
@@ -43,180 +40,149 @@
             </div>
             <div class="flex items-end">
                 <button id="analyzeCategoryBtn" 
-                        class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        class="w-full notion-button notion-button-green disabled:opacity-50 disabled:cursor-not-allowed"
                         disabled>
                     GPT 분석 시작
                 </button>
             </div>
         </div>
 
-        <!-- 로딩 상태 -->
         <div id="analysisLoading" class="hidden text-center py-4">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p class="mt-2 text-gray-600">분석 중... 잠시만 기다려주세요</p>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-notion-blue"></div>
+            <p class="mt-2 text-notion-text-light">분석 중... 잠시만 기다려주세요</p>
         </div>
 
-        <!-- 분석 결과 -->
         <div id="analysisResult" class="hidden mt-6">
-            <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">분석 결과</h3>
-                <div id="analysisContent" class="prose max-w-none bg-gray-50 p-6 rounded-lg">
-                    <!-- GPT 분석 결과가 여기에 표시됨 -->
-                </div>
+            <div class="border-t border-notion-border pt-6">
+                <h3 class="text-lg font-semibold text-notion-text mb-4">분석 결과</h3>
+                <div id="analysisContent" class="prose max-w-none bg-notion-hover p-6 rounded"></div>
             </div>
         </div>
     </div>
 
-    <!-- 다중 카테고리 비교 분석 섹션 -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">다중 카테고리 비교 분석</h2>
+    <!-- 다중 카테고리 비교 분석 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">다중 카테고리 비교 분석</h2>
         
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">비교할 카테고리 선택 (최대 5개):</label>
-            <div id="multiCategorySelect" class="space-y-2">
-                <!-- 동적으로 생성됨 -->
-            </div>
-            <button id="addCategoryBtn" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">
+            <label class="block text-sm font-medium text-notion-text mb-2">비교할 카테고리 선택 (최대 5개):</label>
+            <div id="multiCategorySelect" class="space-y-2"></div>
+            <button id="addCategoryBtn" class="mt-2 text-sm text-notion-blue hover:underline">
                 + 카테고리 추가
             </button>
         </div>
+        
+        <button id="analyzeMultipleBtn" 
+                class="notion-button notion-button-green disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled>
+            다중 카테고리 비교 분석 시작
+        </button>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">카테고리당 앱 수:</label>
-                <input type="number" id="multiAnalysisLimit" value="30" min="10" max="100" 
-                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="flex items-end">
-                <button id="analyzeMultipleBtn" 
-                        class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition disabled:bg-gray-400 disabled:cursor-not-allowed"
-                        disabled>
-                    비교 분석 시작
-                </button>
-            </div>
+        <div id="multipleAnalysisLoading" class="hidden text-center py-4 mt-4">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-notion-blue"></div>
+            <p class="mt-2 text-notion-text-light">분석 중... 잠시만 기다려주세요</p>
         </div>
 
-        <!-- 로딩 상태 -->
-        <div id="multiAnalysisLoading" class="hidden text-center py-4">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p class="mt-2 text-gray-600">비교 분석 중... 잠시만 기다려주세요</p>
-        </div>
-
-        <!-- 분석 결과 -->
-        <div id="multiAnalysisResult" class="hidden mt-6">
-            <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">비교 분석 결과</h3>
-                <div id="multiAnalysisContent" class="prose max-w-none bg-gray-50 p-6 rounded-lg">
-                    <!-- GPT 비교 분석 결과가 여기에 표시됨 -->
-                </div>
+        <div id="multipleAnalysisResult" class="hidden mt-6">
+            <div class="border-t border-notion-border pt-6">
+                <h3 class="text-lg font-semibold text-notion-text mb-4">비교 분석 결과</h3>
+                <div id="multipleAnalysisContent" class="prose max-w-none bg-notion-hover p-6 rounded"></div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const API_BASE = '/api/playstore';
+let categories = [];
+let selectedCategories = [];
 
-// 카테고리 목록 불러오기
-document.getElementById('loadCategoriesBtn').addEventListener('click', async () => {
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('loadCategoriesBtn').addEventListener('click', loadCategories);
+    document.getElementById('categorySelect').addEventListener('change', function() {
+        document.getElementById('analyzeCategoryBtn').disabled = !this.value;
+    });
+    document.getElementById('analyzeCategoryBtn').addEventListener('click', analyzeCategory);
+    document.getElementById('addCategoryBtn').addEventListener('click', addCategorySelector);
+    document.getElementById('analyzeMultipleBtn').addEventListener('click', analyzeMultipleCategories);
+});
+
+async function loadCategories() {
     const btn = document.getElementById('loadCategoriesBtn');
-    const container = document.getElementById('categoriesContainer');
-    const select = document.getElementById('categorySelect');
-    
     btn.disabled = true;
     btn.textContent = '로딩 중...';
     
     try {
-        const response = await fetch(`${API_BASE}/categories`);
+        const response = await fetch('/api/playstore/categories');
         const data = await response.json();
         
         if (data.success && data.categories) {
-            select.innerHTML = '<option value="">카테고리를 선택하세요</option>';
-            data.categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.key;
-                option.textContent = `${cat.name} (${cat.type})`;
-                select.appendChild(option);
-            });
+            categories = data.categories;
+            const select = document.getElementById('categorySelect');
+            select.innerHTML = '<option value="">카테고리를 선택하세요</option>' +
+                categories.map(cat => `<option value="${cat.key}">${cat.name}</option>`).join('');
             
-            container.classList.remove('hidden');
-            document.getElementById('analyzeCategoryBtn').disabled = false;
-            
-            // 다중 선택도 설정
-            setupMultiCategorySelect(data.categories);
+            document.getElementById('categoriesContainer').classList.remove('hidden');
+            btn.textContent = '카테고리 목록 불러오기';
+            btn.disabled = false;
         } else {
-            alert('카테고리 목록을 불러올 수 없습니다.');
+            throw new Error('카테고리 목록을 불러올 수 없습니다.');
         }
     } catch (error) {
         console.error('Error loading categories:', error);
         alert('카테고리 목록을 불러오는 중 오류가 발생했습니다.');
-    } finally {
-        btn.disabled = false;
         btn.textContent = '카테고리 목록 불러오기';
+        btn.disabled = false;
     }
-});
-
-// 다중 카테고리 선택 UI 설정
-function setupMultiCategorySelect(categories) {
-    const container = document.getElementById('multiCategorySelect');
-    container.innerHTML = '';
-    
-    // 첫 번째 선택 박스 추가
-    addCategorySelect(categories);
 }
 
-let categorySelectCount = 0;
-function addCategorySelect(categories) {
-    if (categorySelectCount >= 5) return;
+function addCategorySelector() {
+    if (selectedCategories.length >= 5) {
+        alert('최대 5개까지만 선택할 수 있습니다.');
+        return;
+    }
     
     const container = document.getElementById('multiCategorySelect');
-    const div = document.createElement('div');
-    div.className = 'flex gap-2';
-    div.innerHTML = `
-        <select class="category-select flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-            <option value="">카테고리 선택</option>
-            ${categories.map(cat => `<option value="${cat.key}">${cat.name} (${cat.type})</option>`).join('')}
-        </select>
-        <button class="remove-category-btn text-red-600 hover:text-red-800 px-2" ${categorySelectCount === 0 ? 'hidden' : ''}>
-            삭제
-        </button>
-    `;
+    const index = selectedCategories.length;
+    const select = document.createElement('select');
+    select.className = 'w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue';
+    select.innerHTML = '<option value="">카테고리 선택</option>' +
+        categories.map(cat => `<option value="${cat.key}">${cat.name}</option>`).join('');
     
-    const removeBtn = div.querySelector('.remove-category-btn');
-    removeBtn.addEventListener('click', () => {
-        div.remove();
-        categorySelectCount--;
-        updateMultiAnalyzeButton();
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex gap-2';
+    wrapper.appendChild(select);
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '×';
+    removeBtn.className = 'px-3 py-2 text-red-600 hover:bg-red-50 rounded';
+    removeBtn.onclick = () => {
+        wrapper.remove();
+        selectedCategories = selectedCategories.filter((_, i) => i !== index);
+        updateMultipleAnalyzeButton();
+    };
+    wrapper.appendChild(removeBtn);
+    
+    container.appendChild(wrapper);
+    selectedCategories.push(null);
+    
+    select.addEventListener('change', function() {
+        selectedCategories[index] = this.value || null;
+        updateMultipleAnalyzeButton();
     });
-    
-    container.appendChild(div);
-    categorySelectCount++;
-    
-    // 선택 변경 시 버튼 상태 업데이트
-    div.querySelector('.category-select').addEventListener('change', updateMultiAnalyzeButton);
 }
 
-document.getElementById('addCategoryBtn').addEventListener('click', async () => {
-    const response = await fetch(`${API_BASE}/categories`);
-    const data = await response.json();
-    if (data.success && data.categories) {
-        addCategorySelect(data.categories);
-    }
-});
-
-function updateMultiAnalyzeButton() {
-    const selects = document.querySelectorAll('.category-select');
-    const selected = Array.from(selects).filter(s => s.value).length;
-    document.getElementById('analyzeMultipleBtn').disabled = selected < 2;
+function updateMultipleAnalyzeButton() {
+    const hasSelection = selectedCategories.some(cat => cat);
+    document.getElementById('analyzeMultipleBtn').disabled = !hasSelection;
 }
 
-// 단일 카테고리 분석
-document.getElementById('analyzeCategoryBtn').addEventListener('click', async () => {
-    const category = document.getElementById('categorySelect').value;
+async function analyzeCategory() {
+    const categoryKey = document.getElementById('categorySelect').value;
     const limit = parseInt(document.getElementById('analysisLimit').value);
     const rankingType = document.getElementById('rankingType').value;
     
-    if (!category) {
+    if (!categoryKey) {
         alert('카테고리를 선택해주세요.');
         return;
     }
@@ -224,124 +190,85 @@ document.getElementById('analyzeCategoryBtn').addEventListener('click', async ()
     const loading = document.getElementById('analysisLoading');
     const result = document.getElementById('analysisResult');
     const content = document.getElementById('analysisContent');
+    const btn = document.getElementById('analyzeCategoryBtn');
     
     loading.classList.remove('hidden');
     result.classList.add('hidden');
+    btn.disabled = true;
     
     try {
-        const response = await fetch(`${API_BASE}/analyze-category?play_category=${category}&limit=${limit}&category=${rankingType}&force=true`);
-        const data = await response.json();
-        
-        if (data.success) {
-            // 마크다운을 HTML로 변환 (간단한 변환)
-            content.innerHTML = formatAnalysisText(data.analysis);
-            result.classList.remove('hidden');
-        } else {
-            alert('분석 실패: ' + (data.error || '알 수 없는 오류'));
-        }
-    } catch (error) {
-        console.error('Error analyzing category:', error);
-        alert('분석 중 오류가 발생했습니다.');
-    } finally {
-        loading.classList.add('hidden');
-    }
-});
-
-// 다중 카테고리 비교 분석
-document.getElementById('analyzeMultipleBtn').addEventListener('click', async () => {
-    const selects = document.querySelectorAll('.category-select');
-    const categories = Array.from(selects)
-        .map(s => s.value)
-        .filter(v => v);
-    
-    if (categories.length < 2) {
-        alert('최소 2개 이상의 카테고리를 선택해주세요.');
-        return;
-    }
-    
-    const limit = parseInt(document.getElementById('multiAnalysisLimit').value);
-    const rankingType = document.getElementById('rankingType').value;
-    
-    const loading = document.getElementById('multiAnalysisLoading');
-    const result = document.getElementById('multiAnalysisResult');
-    const content = document.getElementById('multiAnalysisContent');
-    
-    loading.classList.remove('hidden');
-    result.classList.add('hidden');
-    
-    try {
-        const response = await fetch(`${API_BASE}/analyze-multiple-categories`, {
+        const response = await fetch('/api/playstore/analyze-category', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                categories: categories,
-                limit_per_category: limit,
+                play_category: categoryKey,
+                limit: limit,
                 ranking_type: rankingType
             })
         });
         
         const data = await response.json();
         
-        if (data.success) {
-            content.innerHTML = formatAnalysisText(data.analysis);
+        if (data.success && data.report) {
+            content.innerHTML = data.report.replace(/\n/g, '<br>');
             result.classList.remove('hidden');
         } else {
-            alert('분석 실패: ' + (data.error || '알 수 없는 오류'));
+            throw new Error(data.error || '분석 실패');
+        }
+    } catch (error) {
+        console.error('Error analyzing category:', error);
+        content.innerHTML = `<p class="text-red-600">분석 중 오류가 발생했습니다: ${error.message}</p>`;
+        result.classList.remove('hidden');
+    } finally {
+        loading.classList.add('hidden');
+        btn.disabled = false;
+    }
+}
+
+async function analyzeMultipleCategories() {
+    const categoriesToAnalyze = selectedCategories.filter(cat => cat);
+    
+    if (categoriesToAnalyze.length === 0) {
+        alert('최소 1개 이상의 카테고리를 선택해주세요.');
+        return;
+    }
+    
+    const loading = document.getElementById('multipleAnalysisLoading');
+    const result = document.getElementById('multipleAnalysisResult');
+    const content = document.getElementById('multipleAnalysisContent');
+    const btn = document.getElementById('analyzeMultipleBtn');
+    
+    loading.classList.remove('hidden');
+    result.classList.add('hidden');
+    btn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/playstore/analyze-multiple-categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                categories: categoriesToAnalyze,
+                limit_per_category: 50,
+                ranking_type: 'top_free'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.report) {
+            content.innerHTML = data.report.replace(/\n/g, '<br>');
+            result.classList.remove('hidden');
+        } else {
+            throw new Error(data.error || '분석 실패');
         }
     } catch (error) {
         console.error('Error analyzing multiple categories:', error);
-        alert('분석 중 오류가 발생했습니다.');
+        content.innerHTML = `<p class="text-red-600">분석 중 오류가 발생했습니다: ${error.message}</p>`;
+        result.classList.remove('hidden');
     } finally {
         loading.classList.add('hidden');
+        btn.disabled = false;
     }
-});
-
-// GPT 분석 텍스트 포맷팅 (마크다운 간단 변환)
-function formatAnalysisText(text) {
-    if (!text) return '';
-    
-    // 줄바꿈 처리
-    let html = text
-        .replace(/\n\n/g, '</p><p>')
-        .replace(/\n/g, '<br>');
-    
-    // 제목 처리
-    html = html.replace(/^### (.*)$/gm, '<h3 class="text-xl font-semibold mt-4 mb-2">$1</h3>');
-    html = html.replace(/^## (.*)$/gm, '<h2 class="text-2xl font-bold mt-6 mb-3">$1</h2>');
-    html = html.replace(/^# (.*)$/gm, '<h1 class="text-3xl font-bold mt-8 mb-4">$1</h1>');
-    
-    // 리스트 처리
-    html = html.replace(/^- (.*)$/gm, '<li class="ml-4">$1</li>');
-    html = html.replace(/(<li.*<\/li>)/s, '<ul class="list-disc list-inside my-2">$1</ul>');
-    
-    // 볼드 처리
-    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // 기타 스타일
-    html = `<p>${html}</p>`;
-    
-    return html;
 }
 </script>
-
-<style>
-.prose {
-    line-height: 1.75;
-}
-.prose h1, .prose h2, .prose h3 {
-    color: #111827;
-}
-.prose p {
-    margin-bottom: 1rem;
-    color: #374151;
-}
-.prose ul {
-    margin: 1rem 0;
-}
-.prose li {
-    margin: 0.5rem 0;
-}
-</style>
 {% endblock %}

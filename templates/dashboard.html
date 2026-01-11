@@ -1,56 +1,207 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="space-y-8">
+<div class="space-y-6">
+    <!-- 헤더 -->
     <div>
-        <h2 class="text-3xl font-bold text-notion-text mb-2">대시보드</h2>
-        <p class="text-notion-textLight">앱 마켓 분석 현황을 한눈에 확인하세요</p>
+        <h1 class="text-3xl font-semibold text-notion-text mb-2">대시보드</h1>
+        <p class="text-notion-text-light text-base">Play Store 앱 분석 현황을 확인하세요</p>
     </div>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="bg-white border border-notion-border rounded-lg p-6 hover:shadow-md transition-shadow">
-            <h3 class="text-sm font-medium text-notion-textLight mb-2">추천 타입 수</h3>
-            <p class="text-3xl font-bold text-notion-blue" id="recommended-types">-</p>
+
+    <!-- 수집 상태 및 액션 -->
+    <div class="notion-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-notion-text mb-1">데이터 수집 상태</h2>
+                <p class="text-sm text-notion-text-light" id="fetch-status-text">확인 중...</p>
+            </div>
+            <button id="fetch-now-btn" class="notion-button notion-button-blue">
+                지금 수집하기
+            </button>
         </div>
-        <div class="bg-white border border-notion-border rounded-lg p-6 hover:shadow-md transition-shadow">
-            <h3 class="text-sm font-medium text-notion-textLight mb-2">평균 난이도</h3>
-            <p class="text-3xl font-bold text-notion-text" id="avg-difficulty">-</p>
+        <div class="flex items-center gap-4 text-sm text-notion-text-light">
+            <span id="last-fetch-time">마지막 수집: -</span>
+            <span id="next-fetch-time">다음 수집: -</span>
+            <span id="total-apps-count" class="font-medium">총 앱: 0개</span>
         </div>
-        <div class="bg-white border border-notion-border rounded-lg p-6 hover:shadow-md transition-shadow">
-            <h3 class="text-sm font-medium text-notion-textLight mb-2">평균 시장성</h3>
-            <p class="text-3xl font-bold text-green-600" id="avg-marketability">-</p>
+        <div id="fetch-progress" class="hidden mt-4">
+            <div class="bg-notion-border rounded-full h-2 overflow-hidden">
+                <div id="fetch-progress-bar" class="bg-notion-blue h-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <p class="text-sm text-notion-text-light mt-2" id="fetch-progress-text">수집 중...</p>
         </div>
     </div>
-    
-    <div class="bg-white border border-notion-border rounded-lg p-6">
-        <h3 class="text-xl font-semibold text-notion-text mb-4">빠른 작업</h3>
-        <div class="flex gap-3">
-            <a href="/category-analysis" class="px-4 py-2 bg-notion-blue text-white rounded-md hover:bg-blue-600 transition-colors">
-                Play Store 앱 가져오기
+
+    <!-- 통계 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="notion-card p-5">
+            <div class="text-sm text-notion-text-light mb-2">추천 타입 수</div>
+            <div class="text-3xl font-semibold text-notion-text" id="recommended-types">-</div>
+        </div>
+        <div class="notion-card p-5">
+            <div class="text-sm text-notion-text-light mb-2">평균 난이도</div>
+            <div class="text-3xl font-semibold text-notion-text" id="avg-difficulty">-</div>
+        </div>
+        <div class="notion-card p-5">
+            <div class="text-sm text-notion-text-light mb-2">평균 시장성</div>
+            <div class="text-3xl font-semibold text-green-600" id="avg-marketability">-</div>
+        </div>
+    </div>
+
+    <!-- 빠른 작업 -->
+    <div class="notion-card p-5">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">빠른 작업</h2>
+        <div class="flex flex-wrap gap-3">
+            <a href="/category-analysis" class="notion-button notion-button-blue no-underline inline-block">
+                카테고리별 앱 가져오기
             </a>
-            <a href="/analysis" class="px-4 py-2 bg-white border border-notion-border text-notion-text rounded-md hover:bg-notion-sidebar transition-colors">
+            <a href="/analysis" class="notion-button no-underline inline-block">
                 분석 보기
             </a>
-            <a href="/report" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors">
+            <a href="/report" class="notion-button notion-button-green no-underline inline-block">
                 AI 리포트 생성
             </a>
         </div>
     </div>
-    
-    <div class="bg-white border border-notion-border rounded-lg p-6">
-        <h3 class="text-xl font-semibold text-notion-text mb-4">추천 앱 타입 (최근 5개)</h3>
+
+    <!-- 최근 수집된 앱 -->
+    <div class="notion-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-notion-text">최근 수집된 앱</h2>
+            <a href="/apps" class="text-sm text-notion-blue hover:underline">전체 보기 →</a>
+        </div>
+        <div id="recent-apps" class="space-y-3">
+            <p class="text-notion-text-light text-sm">로딩 중...</p>
+        </div>
+    </div>
+
+    <!-- 추천 앱 타입 -->
+    <div class="notion-card p-5">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-notion-text">추천 앱 타입</h2>
+            <a href="/analysis" class="text-sm text-notion-blue hover:underline">전체 보기 →</a>
+        </div>
         <div id="recommendations-list" class="space-y-4">
-            <p class="text-notion-textLight">로딩 중...</p>
+            <p class="text-notion-text-light text-sm">로딩 중...</p>
         </div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
-    // Play Store 앱 통계 로드
+    await loadFetchStatus();
+    await loadStatistics();
+    await loadRecentApps();
+    await loadRecommendations();
+
+    // 지금 수집하기 버튼
+    document.getElementById('fetch-now-btn').addEventListener('click', async () => {
+        await fetchRankingsNow();
+    });
+});
+
+// 수집 상태 로드
+async function loadFetchStatus() {
+    try {
+        // 마지막 수집 시간
+        const lastFetchRes = await fetch('/api/playstore/last-fetch');
+        const lastFetchData = await lastFetchRes.json();
+        
+        if (lastFetchData.last_fetch) {
+            const lastFetch = new Date(lastFetchData.last_fetch);
+            document.getElementById('last-fetch-time').textContent = 
+                `마지막 수집: ${lastFetch.toLocaleString('ko-KR')}`;
+        } else {
+            document.getElementById('last-fetch-time').textContent = '마지막 수집: 없음';
+        }
+
+        // 수집 상태
+        const statusRes = await fetch('/api/playstore/status');
+        const statusData = await statusRes.json();
+        
+        if (statusData.can_fetch) {
+            document.getElementById('fetch-status-text').textContent = '오늘은 월요일입니다. 수집 가능합니다.';
+            document.getElementById('fetch-status-text').className = 'text-sm text-green-600';
+        } else {
+            document.getElementById('fetch-status-text').textContent = 
+                `다음 수집: ${statusData.next_monday || '월요일'}`;
+            document.getElementById('fetch-status-text').className = 'text-sm text-notion-text-light';
+        }
+
+        if (statusData.next_monday) {
+            document.getElementById('next-fetch-time').textContent = 
+                `다음 수집: ${new Date(statusData.next_monday).toLocaleDateString('ko-KR')}`;
+        }
+
+    } catch (error) {
+        console.error('Error loading fetch status:', error);
+        document.getElementById('fetch-status-text').textContent = '상태를 불러올 수 없습니다.';
+    }
+}
+
+// 지금 수집하기
+async function fetchRankingsNow() {
+    const btn = document.getElementById('fetch-now-btn');
+    const progress = document.getElementById('fetch-progress');
+    const progressBar = document.getElementById('fetch-progress-bar');
+    const progressText = document.getElementById('fetch-progress-text');
+    
+    btn.disabled = true;
+    btn.textContent = '수집 중...';
+    progress.classList.remove('hidden');
+    
+    try {
+        progressBar.style.width = '30%';
+        progressText.textContent = 'Play Store에서 앱 목록을 가져오는 중...';
+        
+        const response = await fetch('/api/playstore/fetch-rankings?force=true', {
+            method: 'POST'
+        });
+        
+        progressBar.style.width = '70%';
+        progressText.textContent = '데이터베이스에 저장하는 중...';
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            progressBar.style.width = '100%';
+            progressText.textContent = `수집 완료! ${result.saved_count || 0}개 저장, ${result.updated_count || 0}개 업데이트`;
+            
+            setTimeout(() => {
+                progress.classList.add('hidden');
+                btn.disabled = false;
+                btn.textContent = '지금 수집하기';
+                
+                // 데이터 새로고침
+                loadFetchStatus();
+                loadStatistics();
+                loadRecentApps();
+                loadRecommendations();
+            }, 2000);
+        } else {
+            throw new Error(result.error || '수집 실패');
+        }
+    } catch (error) {
+        console.error('Error fetching rankings:', error);
+        progressText.textContent = `오류: ${error.message}`;
+        progressBar.style.background = '#ef4444';
+        
+        setTimeout(() => {
+            progress.classList.add('hidden');
+            btn.disabled = false;
+            btn.textContent = '지금 수집하기';
+            progressBar.style.background = '';
+        }, 3000);
+    }
+}
+
+// 통계 로드
+async function loadStatistics() {
     try {
         const appsRes = await fetch('/api/apps/playstore?limit=1000');
         const apps = await appsRes.json();
+        
+        document.getElementById('total-apps-count').textContent = `총 앱: ${apps.length}개`;
         
         if (apps.length > 0) {
             const avgDifficulty = (apps.reduce((sum, a) => sum + (a.difficulty_score || 0), 0) / apps.length).toFixed(2);
@@ -61,41 +212,114 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
             document.getElementById('avg-difficulty').textContent = '-';
             document.getElementById('avg-marketability').textContent = '-';
-            document.getElementById('recommended-types').textContent = '0';
         }
         
-        // 추천 타입 로드 (Play Store 앱 기반)
+        // 추천 타입 수
         try {
             const recRes = await fetch('/api/analysis/recommendations?min_marketability=6&max_difficulty=1.0&max_features=5');
             const recommendations = await recRes.json();
-            
             document.getElementById('recommended-types').textContent = recommendations.length;
-            
-            // 추천 목록 표시
-            const listEl = document.getElementById('recommendations-list');
-            if (recommendations.length === 0) {
-                listEl.innerHTML = '<p class="text-notion-textLight">추천 항목이 없습니다. Play Store에서 앱을 가져와 분석해보세요.</p>';
-            } else {
-                listEl.innerHTML = recommendations.slice(0, 5).map(type => `
-                    <div class="border border-notion-border rounded-lg p-4 hover:bg-notion-sidebar transition-colors">
-                        <h4 class="font-semibold text-lg text-notion-text mb-2">${type.name}</h4>
-                        <p class="text-sm text-notion-textLight mb-2"><strong>핵심 기능:</strong> ${type.core_features ? type.core_features.join(', ') : 'N/A'}</p>
-                        <div class="flex gap-4 text-sm">
-                            <span class="px-2 py-1 bg-red-100 text-red-700 rounded">난이도: ${type.avg_difficulty ? type.avg_difficulty.toFixed(2) : 'N/A'}</span>
-                            <span class="px-2 py-1 bg-green-100 text-green-700 rounded">시장성: ${type.avg_marketability ? type.avg_marketability.toFixed(2) : 'N/A'}</span>
-                            <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded">화면: ${type.mvp_screens || 'N/A'}개</span>
-                            <span class="px-2 py-1 bg-purple-100 text-purple-700 rounded">기간: ${type.build_time || 'N/A'}</span>
-                        </div>
-                    </div>
-                `).join('');
-            }
         } catch (error) {
-            console.error('Error loading recommendations:', error);
-            document.getElementById('recommended-types').textContent = '-';
+            document.getElementById('recommended-types').textContent = '0';
         }
     } catch (error) {
-        console.error('Error loading dashboard:', error);
+        console.error('Error loading statistics:', error);
     }
-});
+}
+
+// 최근 수집된 앱
+async function loadRecentApps() {
+    const container = document.getElementById('recent-apps');
+    
+    try {
+        const response = await fetch('/api/apps/playstore?limit=5');
+        const apps = await response.json();
+        
+        if (apps.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-notion-text-light">
+                    <p class="mb-4">수집된 앱이 없습니다.</p>
+                    <a href="/category-analysis" class="notion-button notion-button-blue no-underline inline-block">
+                        앱 가져오기
+                    </a>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = apps.map(app => `
+            <div class="flex items-center justify-between p-3 hover:bg-notion-hover rounded cursor-pointer" onclick="window.location.href='/apps'">
+                <div class="flex-1">
+                    <div class="font-medium text-notion-text">${app.name}</div>
+                    <div class="text-sm text-notion-text-light mt-1">
+                        ${app.category || '카테고리 없음'} • 
+                        평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} • 
+                        리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}
+                    </div>
+                </div>
+                <div class="flex gap-2 ml-4">
+                    <span class="px-2 py-1 text-xs rounded ${app.difficulty_score <= 1.0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
+                        난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded ${app.marketability_score >= 6.0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">
+                        시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading recent apps:', error);
+        container.innerHTML = '<p class="text-red-600 text-sm">앱 목록을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
+
+// 추천 앱 타입
+async function loadRecommendations() {
+    const container = document.getElementById('recommendations-list');
+    
+    try {
+        const response = await fetch('/api/analysis/recommendations?min_marketability=6&max_difficulty=1.0&max_features=5');
+        const recommendations = await response.json();
+        
+        if (recommendations.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-notion-text-light">
+                    <p class="mb-4">추천 항목이 없습니다.</p>
+                    <p class="text-sm">Play Store에서 앱을 가져오고 기능을 추가한 후 분석해보세요.</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = recommendations.slice(0, 5).map(type => `
+            <div class="p-4 border border-notion-border rounded hover:bg-notion-hover transition-colors">
+                <h3 class="font-semibold text-lg text-notion-text mb-2">${type.name || '앱 타입'}</h3>
+                <p class="text-sm text-notion-text-light mb-3">
+                    <strong>핵심 기능:</strong> ${type.core_features ? type.core_features.join(', ') : 'N/A'}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <span class="px-2 py-1 text-xs rounded bg-red-50 text-red-700">
+                        난이도: ${type.avg_difficulty ? type.avg_difficulty.toFixed(2) : 'N/A'}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded bg-green-50 text-green-700">
+                        시장성: ${type.avg_marketability ? type.avg_marketability.toFixed(2) : 'N/A'}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">
+                        앱 수: ${type.app_count || 0}
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded bg-purple-50 text-purple-700">
+                        화면: ${type.mvp_screens || 'N/A'}개
+                    </span>
+                    <span class="px-2 py-1 text-xs rounded bg-yellow-50 text-yellow-700">
+                        기간: ${type.build_time || 'N/A'}
+                    </span>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading recommendations:', error);
+        container.innerHTML = '<p class="text-red-600 text-sm">추천 목록을 불러오는 중 오류가 발생했습니다.</p>';
+    }
+}
 </script>
 {% endblock %}
