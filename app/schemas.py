@@ -44,15 +44,16 @@ class AppUpdate(BaseModel):
 class AppResponse(BaseModel):
     id: int
     name: str
-    category: Optional[str]
-    rating: Optional[float]
-    review_count: Optional[int]
-    price_model: Optional[str]
-    last_update: Optional[datetime]
-    description: Optional[str]
-    difficulty_score: float
-    marketability_score: float
-    created_at: datetime
+    package_name: Optional[str] = None
+    category: Optional[str] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    price_model: Optional[str] = None
+    last_update: Optional[datetime] = None
+    description: Optional[str] = None
+    difficulty_score: float = 0.0
+    marketability_score: float = 0.0
+    created_at: Optional[datetime] = None
     features: List[FeatureResponse] = []
 
     class Config:

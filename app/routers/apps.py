@@ -59,7 +59,7 @@ async def get_playstore_apps(
         raise HTTPException(status_code=500, detail=f"앱 목록을 불러오는 중 오류가 발생했습니다: {str(e)}")
 
 
-@router.get("/{app_id}", response_class=AppResponse)
+@router.get("/{app_id}", response_model=AppResponse)
 async def get_app(app_id: int, db: Session = Depends(get_db)):
     """앱 상세 정보 조회"""
     app = db.query(App).filter(App.id == app_id).first()
