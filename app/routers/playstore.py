@@ -14,9 +14,9 @@ from app.models import App
 from app.schemas import AppCreate, AppResponse
 from app.services.play_store_scraper import (
     fetch_top_apps,
-    should_fetch_this_week,
     fetch_app_details
 )
+from app.tasks.scheduler import should_fetch_this_week
 from app.services.marketability_scorer import calculate_marketability_score
 from app.services.difficulty_scorer import calculate_app_difficulty
 from app.services.category_analyzer import (
@@ -51,13 +51,19 @@ async def fetch_rankings_impl(
         play_category: Play Store 카테고리 (예: "APPLICATION_SOCIAL", "GAME" 등)
     """
     # 월요일인지 확인 (GMT+9 기준)
-    if not force and not should_fetch_this_week():
-        current_time = datetime.now(ZoneInfo("Asia/Seoul"))
-        weekday_names = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-        raise HTTPException(
-            status_code=400,
-            detail=f"앱 순위는 매주 월요일(GMT+9)에만 가져올 수 있습니다. 현재는 {weekday_names[current_time.weekday()]}입니다."
-        )
+    if not force:
+        from app.database import SessionLocal
+        db_for_check = SessionLocal()
+        try:
+            if not should_fetch_this_week(db_for_check):
+                current_time = datetime.now(ZoneInfo("Asia/Seoul"))
+                weekday_names = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"앱 순위는 매주 월요일(GMT+9)에만 가져올 수 있습니다. 현재는 {weekday_names[current_time.weekday()]}입니다."
+                )
+        finally:
+            db_for_check.close()
     
     try:
         # Play Store에서 앱 목록 가져오기
@@ -304,43 +310,78 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
     """
     마지막으로 앱 순위를 가져온 시간 확인
     """
-    latest_app = db.query(App).order_by(App.id.desc()).first()
-    
-    if not latest_app:
-        return {
-            "last_fetch": None,
-            "message": "아직 앱 데이터를 가져온 적이 없습니다."
-        }
-    
-    kst = ZoneInfo("Asia/Seoul")
-    now = datetime.now(kst)
-    days_until_monday = (7 - now.weekday()) % 7
-    if days_until_monday == 0 and now.hour < 9:
-        next_monday = now.replace(hour=9, minute=0, second=0, microsecond=0)
-    else:
+    try:
+        latest_app = db.query(App).order_by(App.id.desc()).first()
+        
+        if not latest_app:
+            return {
+                "last_fetch": None,
+                "message": "아직 앱 데이터를 가져온 적이 없습니다."
+            }
+        
+        kst = ZoneInfo("Asia/Seoul")
+        now = datetime.now(kst)
+        days_until_monday = (7 - now.weekday()) % 7
         if days_until_monday == 0:
-            days_until_monday = 7
-        next_monday = (now.replace(hour=9, minute=0, second=0, microsecond=0) + 
-                      timedelta(days=days_until_monday))
-    
-    return {
-        "last_fetch": latest_app.created_at.isoformat() if hasattr(latest_app, 'created_at') else None,
-        "next_scheduled_fetch": next_monday.isoformat(),
-        "can_fetch_now": should_fetch_this_week()
-    }
+            if now.hour < 9:
+                next_monday = now.replace(hour=9, minute=0, second=0, microsecond=0)
+            else:
+                next_monday = (now.replace(hour=9, minute=0, second=0, microsecond=0) + 
+                              timedelta(days=7))
+        else:
+            next_monday = (now.replace(hour=9, minute=0, second=0, microsecond=0) + 
+                          timedelta(days=days_until_monday))
+        
+        try:
+            can_fetch_now = should_fetch_this_week(db)
+        except Exception:
+            can_fetch_now = False
+        
+        last_fetch = None
+        if hasattr(latest_app, 'created_at') and latest_app.created_at:
+            last_fetch = latest_app.created_at.isoformat()
+        
+        return {
+            "last_fetch": last_fetch,
+            "next_scheduled_fetch": next_monday.isoformat(),
+            "can_fetch_now": can_fetch_now
+        }
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in get_last_fetch_info: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"마지막 수집 정보를 가져오는 중 오류가 발생했습니다: {str(e)}")
 
 
 @router.get("/status")
-async def get_fetch_status():
+async def get_fetch_status(db: Session = Depends(get_db)):
     """
     현재 앱 순위를 가져올 수 있는지 상태 확인
     """
     current_time = datetime.now(ZoneInfo("Asia/Seoul"))
     weekday_names = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
     
+    # 다음 월요일 계산
+    days_until_monday = (7 - current_time.weekday()) % 7
+    if days_until_monday == 0:
+        if current_time.hour < 9:
+            next_monday = current_time.replace(hour=9, minute=0, second=0, microsecond=0)
+        else:
+            next_monday = (current_time.replace(hour=9, minute=0, second=0, microsecond=0) + 
+                          timedelta(days=7))
+    else:
+        next_monday = (current_time.replace(hour=9, minute=0, second=0, microsecond=0) + 
+                      timedelta(days=days_until_monday))
+    
+    try:
+        can_fetch = should_fetch_this_week(db)
+    except Exception as e:
+        can_fetch = False
+    
     return {
         "current_time": current_time.isoformat(),
         "current_weekday": weekday_names[current_time.weekday()],
-        "can_fetch": should_fetch_this_week(),
+        "can_fetch": can_fetch,
+        "next_monday": next_monday.isoformat(),
         "timezone": "GMT+9 (Asia/Seoul)"
     }

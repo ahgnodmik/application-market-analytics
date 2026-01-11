@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Notion 스타일 커스텀 */
+:root {
+  --notion-bg: #ffffff;
+  --notion-sidebar: #f7f6f3;
+  --notion-border: #e9e9e7;
+  --notion-text: #37352f;
+  --notion-text-light: #787774;
+  --notion-blue: #2383e2;
+  --notion-hover: #f1f1ef;
+}
+
+body {
+  background-color: var(--notion-bg);
+  color: var(--notion-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
+}
+
+.notion-sidebar {
+  background-color: var(--notion-sidebar);
+  border-right: 1px solid var(--notion-border);
+}
+
+.notion-card {
+  background: var(--notion-bg);
+  border: 1px solid var(--notion-border);
+  border-radius: 3px;
+  transition: all 0.1s ease;
+}
+
+.notion-card:hover {
+  box-shadow: rgba(15, 15, 15, 0.1) 0px 0px 0px 1px, rgba(15, 15, 15, 0.1) 0px 2px 4px;
+}
+
+.notion-button {
+  background: var(--notion-text);
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.notion-button:hover {
+  background: #2e2e2e;
+}
+
+.notion-button-blue {
+  background: var(--notion-blue);
+}
+
+.notion-button-blue:hover {
+  background: #1a6bc4;
+}
+
+.notion-button-green {
+  background: #0f7b0f;
+}
+
+.notion-button-green:hover {
+  background: #0d6b0d;
+}
+
+.notion-link {
+  color: var(--notion-text);
+  text-decoration: none;
+  border-radius: 3px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  transition: background 0.1s ease;
+}
+
+.notion-link:hover {
+  background: var(--notion-hover);
+}
+
+.notion-nav-item {
+  color: var(--notion-text);
+  padding: 4px 8px;
+  border-radius: 3px;
+  margin: 2px 0;
+  display: block;
+  text-decoration: none;
+  transition: background 0.1s ease;
+}
+
+.notion-nav-item:hover {
+  background: var(--notion-hover);
+}
+
+.notion-nav-item.active {
+  background: var(--notion-hover);
+  font-weight: 500;
+}

@@ -4,7 +4,8 @@
   "description": "안드로이드 마켓 분석기 - 구현 난이도가 낮고 시장성이 검증된 앱 타입 추출 서비스",
   "scripts": {
     "dev": "python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
-    "start": "python3 -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    "start": "python3 -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}",
+    "build:css": "tailwindcss -i ./static/input.css -o ./static/style.css --minify"
   },
   "keywords": [
     "analytics",
@@ -19,6 +20,20 @@
   "engines": {
     "python": "3.10",
     "node": ">=18.0.0"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ahgnodmik/application-market-analytics.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ahgnodmik/application-market-analytics/issues"
+  },
+  "homepage": "https://github.com/ahgnodmik/application-market-analytics#readme",
+  "devDependencies": {
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18"
   }
 }
-
