@@ -278,6 +278,19 @@ async def report_page(request: Request):
         return render_error_page(f"리포트 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
 
 
+@app.get("/category-analysis", response_class=HTMLResponse)
+async def category_analysis_page(request: Request):
+    """카테고리별 분석 페이지"""
+    try:
+        if templates is None:
+            return render_simple_dashboard()
+        return templates.TemplateResponse("category_analysis.html", {"request": request})
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Category analysis page render error: {e}")
+        return render_error_page(f"카테고리 분석 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
+
+
 @app.get("/health")
 def health_check():
     """헬스 체크 - 상세 정보 포함"""
