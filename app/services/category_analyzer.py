@@ -129,6 +129,15 @@ async def analyze_category_with_gpt(
         logger.error(f"Error analyzing category with GPT: {e}")
         import traceback
         logger.error(traceback.format_exc())
+        
+        # API 키 관련 에러인 경우 더 명확한 메시지 제공
+        error_str = str(e)
+        if "401" in error_str or "invalid_api_key" in error_str or "Incorrect API key" in error_str:
+            return {
+                "success": False,
+                "error": "OpenAI API 키가 유효하지 않습니다. Railway 환경 변수에서 OPENAI_API_KEY를 확인하고 올바른 키로 업데이트해주세요. https://platform.openai.com/api-keys 에서 새 API 키를 생성할 수 있습니다."
+            }
+        
         return {
             "success": False,
             "error": f"GPT 분석 중 오류 발생: {str(e)}"

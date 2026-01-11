@@ -4,6 +4,12 @@
 
 GPT 분석 기능이 작동하지 않는 경우, OpenAI API 키가 설정되지 않았거나 유효하지 않을 수 있습니다.
 
+### 일반적인 에러 메시지
+
+- `Error code: 401` - API 키가 유효하지 않음
+- `Incorrect API key provided` - 잘못된 API 키
+- `invalid_api_key` - API 키 형식 오류
+
 ## 로컬 개발 환경
 
 ### 1. API 키 확인
