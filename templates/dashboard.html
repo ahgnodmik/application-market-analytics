@@ -168,47 +168,43 @@ document.addEventListener('DOMContentLoaded', async () => {
 // 수집 상태 로드
 async function loadFetchStatus() {
     try {
-        // 마지막 수집 시간
-        const lastFetchRes = await fetch('/api/playstore/last-fetch');
-        
-        if (lastFetchRes.ok) {
-            const lastFetchData = await lastFetchRes.json();
-            
-            if (lastFetchData.last_fetch) {
-                const lastFetch = new Date(lastFetchData.last_fetch);
-                document.getElementById('last-fetch-time').textContent = 
-                    `마지막 수집: ${lastFetch.toLocaleString('ko-KR')}`;
+        // 마지막 수집 시간 - 앱 목록에서 최신 앱의 created_at 사용
+        try {
+            const appsRes = await fetch('/api/apps/playstore?limit=1');
+            if (appsRes.ok) {
+                const apps = await appsRes.json();
+                if (apps && apps.length > 0 && apps[0].created_at) {
+                    const lastFetch = new Date(apps[0].created_at);
+                    document.getElementById('last-fetch-time').textContent = 
+                        `마지막 수집: ${lastFetch.toLocaleString('ko-KR')}`;
+                } else {
+                    document.getElementById('last-fetch-time').textContent = '마지막 수집: 없음';
+                }
             } else {
-                document.getElementById('last-fetch-time').textContent = '마지막 수집: 없음';
+                document.getElementById('last-fetch-time').textContent = '마지막 수집: 확인 불가';
             }
-        } else {
-            console.error('Failed to fetch last-fetch:', lastFetchRes.status);
+        } catch (e) {
+            console.error('Error fetching last fetch time:', e);
             document.getElementById('last-fetch-time').textContent = '마지막 수집: 확인 불가';
         }
 
-        // 수집 상태
-        const statusRes = await fetch('/api/playstore/status');
+        // 수집 상태 - 간단한 메시지로 대체
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0 = 일요일, 1 = 월요일
         
-        if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            
-            if (statusData.can_fetch) {
-                document.getElementById('fetch-status-text').textContent = '오늘은 월요일입니다. 수집 가능합니다.';
-                document.getElementById('fetch-status-text').className = 'text-sm text-green-600';
-            } else {
-                document.getElementById('fetch-status-text').textContent = 
-                    `다음 수집: ${statusData.next_monday ? new Date(statusData.next_monday).toLocaleDateString('ko-KR') : '월요일'}`;
-                document.getElementById('fetch-status-text').className = 'text-sm text-notion-text-light';
-            }
-
-            if (statusData.next_monday) {
-                document.getElementById('next-fetch-time').textContent = 
-                    `다음 수집: ${new Date(statusData.next_monday).toLocaleDateString('ko-KR')}`;
-            }
+        if (dayOfWeek === 1) {
+            document.getElementById('fetch-status-text').textContent = '오늘은 월요일입니다. 수집 가능합니다.';
+            document.getElementById('fetch-status-text').className = 'text-sm text-green-600';
         } else {
-            console.error('Failed to fetch status:', statusRes.status);
-            document.getElementById('fetch-status-text').textContent = '상태를 불러올 수 없습니다.';
+            const daysUntilMonday = (8 - dayOfWeek) % 7 || 7;
+            const nextMonday = new Date(today);
+            nextMonday.setDate(today.getDate() + daysUntilMonday);
+            document.getElementById('fetch-status-text').textContent = 
+                `다음 수집: ${nextMonday.toLocaleDateString('ko-KR')}`;
+            document.getElementById('fetch-status-text').className = 'text-sm text-notion-text-light';
         }
+        
+        document.getElementById('next-fetch-time').textContent = '';
 
     } catch (error) {
         console.error('Error loading fetch status:', error);
@@ -277,16 +273,35 @@ async function fetchRankingsNow() {
 async function loadStatistics() {
     try {
         const appsRes = await fetch('/api/apps/playstore?limit=1000');
+        
+        if (!appsRes.ok) {
+            throw new Error(`HTTP ${appsRes.status}: ${appsRes.statusText}`);
+        }
+        
         const apps = await appsRes.json();
         
-        document.getElementById('total-apps-count').textContent = `총 앱: ${apps.length}개`;
+        // 배열인지 확인
+        const appsArray = Array.isArray(apps) ? apps : [];
         
-        if (apps.length > 0) {
-            const avgDifficulty = (apps.reduce((sum, a) => sum + (a.difficulty_score || 0), 0) / apps.length).toFixed(2);
-            const avgMarketability = (apps.reduce((sum, a) => sum + (a.marketability_score || 0), 0) / apps.length).toFixed(2);
+        document.getElementById('total-apps-count').textContent = `총 앱: ${appsArray.length}개`;
+        
+        if (appsArray.length > 0) {
+            const appsWithScores = appsArray.filter(a => a.difficulty_score !== null && a.difficulty_score !== undefined);
+            const appsWithMarketability = appsArray.filter(a => a.marketability_score !== null && a.marketability_score !== undefined);
             
-            document.getElementById('avg-difficulty').textContent = avgDifficulty;
-            document.getElementById('avg-marketability').textContent = avgMarketability;
+            if (appsWithScores.length > 0) {
+                const avgDifficulty = (appsWithScores.reduce((sum, a) => sum + (a.difficulty_score || 0), 0) / appsWithScores.length).toFixed(2);
+                document.getElementById('avg-difficulty').textContent = avgDifficulty;
+            } else {
+                document.getElementById('avg-difficulty').textContent = '-';
+            }
+            
+            if (appsWithMarketability.length > 0) {
+                const avgMarketability = (appsWithMarketability.reduce((sum, a) => sum + (a.marketability_score || 0), 0) / appsWithMarketability.length).toFixed(2);
+                document.getElementById('avg-marketability').textContent = avgMarketability;
+            } else {
+                document.getElementById('avg-marketability').textContent = '-';
+            }
         } else {
             document.getElementById('avg-difficulty').textContent = '-';
             document.getElementById('avg-marketability').textContent = '-';
@@ -295,13 +310,24 @@ async function loadStatistics() {
         // 추천 타입 수
         try {
             const recRes = await fetch('/api/analysis/recommendations?min_marketability=6&max_difficulty=1.0&max_features=5');
-            const recommendations = await recRes.json();
-            document.getElementById('recommended-types').textContent = recommendations.length;
+            
+            if (recRes.ok) {
+                const recommendations = await recRes.json();
+                const recArray = Array.isArray(recommendations) ? recommendations : [];
+                document.getElementById('recommended-types').textContent = recArray.length;
+            } else {
+                document.getElementById('recommended-types').textContent = '0';
+            }
         } catch (error) {
+            console.error('Error loading recommendations count:', error);
             document.getElementById('recommended-types').textContent = '0';
         }
     } catch (error) {
         console.error('Error loading statistics:', error);
+        document.getElementById('total-apps-count').textContent = '총 앱: 오류';
+        document.getElementById('avg-difficulty').textContent = '-';
+        document.getElementById('avg-marketability').textContent = '-';
+        document.getElementById('recommended-types').textContent = '-';
     }
 }
 
@@ -365,7 +391,13 @@ async function loadRecommendations() {
     
     try {
         const response = await fetch('/api/analysis/recommendations?min_marketability=6&max_difficulty=1.0&max_features=5');
-        const recommendations = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const recommendations = Array.isArray(data) ? data : [];
         
         if (recommendations.length === 0) {
             container.innerHTML = `
@@ -377,18 +409,24 @@ async function loadRecommendations() {
             return;
         }
         
-        container.innerHTML = recommendations.slice(0, 5).map(type => `
+        container.innerHTML = recommendations.slice(0, 5).map(type => {
+            const coreFeatures = type.core_features;
+            const featuresText = coreFeatures 
+                ? (Array.isArray(coreFeatures) ? coreFeatures.join(', ') : String(coreFeatures))
+                : 'N/A';
+            
+            return `
             <div class="p-4 border border-notion-border rounded hover:bg-notion-hover transition-colors">
                 <h3 class="font-semibold text-lg text-notion-text mb-2">${type.name || '앱 타입'}</h3>
                 <p class="text-sm text-notion-text-light mb-3">
-                    <strong>핵심 기능:</strong> ${type.core_features ? type.core_features.join(', ') : 'N/A'}
+                    <strong>핵심 기능:</strong> ${featuresText}
                 </p>
                 <div class="flex flex-wrap gap-2">
                     <span class="px-2 py-1 text-xs rounded bg-red-50 text-red-700">
-                        난이도: ${type.avg_difficulty ? type.avg_difficulty.toFixed(2) : 'N/A'}
+                        난이도: ${type.avg_difficulty !== null && type.avg_difficulty !== undefined ? type.avg_difficulty.toFixed(2) : 'N/A'}
                     </span>
                     <span class="px-2 py-1 text-xs rounded bg-green-50 text-green-700">
-                        시장성: ${type.avg_marketability ? type.avg_marketability.toFixed(2) : 'N/A'}
+                        시장성: ${type.avg_marketability !== null && type.avg_marketability !== undefined ? type.avg_marketability.toFixed(2) : 'N/A'}
                     </span>
                     <span class="px-2 py-1 text-xs rounded bg-blue-50 text-blue-700">
                         앱 수: ${type.app_count || 0}
@@ -401,10 +439,16 @@ async function loadRecommendations() {
                     </span>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     } catch (error) {
         console.error('Error loading recommendations:', error);
-        container.innerHTML = '<p class="text-red-600 text-sm">추천 목록을 불러오는 중 오류가 발생했습니다.</p>';
+        container.innerHTML = `
+            <div class="text-center py-8 text-notion-text-light">
+                <p class="mb-2 text-red-600">추천 목록을 불러오는 중 오류가 발생했습니다.</p>
+                <p class="text-sm">${error.message || '알 수 없는 오류'}</p>
+            </div>
+        `;
     }
 }
 
