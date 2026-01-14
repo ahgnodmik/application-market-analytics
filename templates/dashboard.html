@@ -223,22 +223,27 @@ async function loadRecentApps() {
         }
         
         container.innerHTML = apps.map(app => `
-            <div class="flex items-center justify-between p-3 hover:bg-notion-hover rounded cursor-pointer" onclick="window.location.href='/apps'">
-                <div class="flex-1">
-                    <div class="font-medium text-notion-text">${app.name}</div>
-                    <div class="text-sm text-notion-text-light mt-1">
-                        ${app.category || '카테고리 없음'} • 
-                        평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} • 
-                        리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}
+            <div class="p-3 border border-notion-border rounded hover:bg-notion-hover transition-colors cursor-pointer" onclick="window.location.href='/apps'">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-semibold text-notion-text mb-1">${app.name}</div>
+                        <div class="text-xs text-notion-text-light mb-2">
+                            ${app.category || '카테고리 없음'} • 
+                            평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐ • 
+                            리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}개
+                        </div>
+                        ${app.description ? `
+                            <p class="text-xs text-notion-text-light line-clamp-2 mt-2">${app.description.substring(0, 100)}${app.description.length > 100 ? '...' : ''}</p>
+                        ` : ''}
                     </div>
-                </div>
-                <div class="flex gap-2 ml-4">
-                    <span class="px-2 py-1 text-xs rounded ${app.difficulty_score <= 1.0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}">
-                        난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
-                    </span>
-                    <span class="px-2 py-1 text-xs rounded ${app.marketability_score >= 6.0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}">
-                        시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
-                    </span>
+                    <div class="flex flex-col gap-1.5 flex-shrink-0">
+                        <span class="px-2 py-1 text-xs rounded font-medium ${app.difficulty_score <= 1.0 ? 'bg-green-100 text-green-700' : app.difficulty_score <= 1.5 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}">
+                            난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
+                        </span>
+                        <span class="px-2 py-1 text-xs rounded font-medium ${app.marketability_score >= 7.0 ? 'bg-blue-100 text-blue-700' : app.marketability_score >= 5.0 ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700'}">
+                            시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
+                        </span>
+                    </div>
                 </div>
             </div>
         `).join('');

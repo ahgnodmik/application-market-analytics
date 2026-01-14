@@ -24,7 +24,7 @@ print(f"[INIT] PORT environment variable: {os.getenv('PORT', 'NOT SET')}")
 
 try:
     from app.database import engine, Base
-    from app.routers import apps, analysis, upload, report, playstore
+    from app.routers import apps, analysis, upload, playstore
     print("[INIT] ✅ All modules imported successfully")
 except Exception as e:
     print(f"[INIT] ❌ ERROR importing modules: {e}")
@@ -153,7 +153,6 @@ try:
     app.include_router(apps.router)
     app.include_router(analysis.router)
     app.include_router(upload.router)
-    app.include_router(report.router)
     app.include_router(playstore.router)
     print(f"[APP INIT] ✅ All routers registered successfully")
 except Exception as e:
@@ -366,19 +365,6 @@ async def analysis_page(request: Request):
         import traceback
         print(f"[ERROR] Analysis page render error: {e}")
         return render_error_page(f"분석 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
-
-
-@app.get("/report", response_class=HTMLResponse)
-async def report_page(request: Request):
-    """AI 리포트 페이지"""
-    try:
-        if templates is None:
-            return render_simple_dashboard()
-        return templates.TemplateResponse("report.html", {"request": request})
-    except Exception as e:
-        import traceback
-        print(f"[ERROR] Report page render error: {e}")
-        return render_error_page(f"리포트 페이지 렌더링 오류: {str(e)}", traceback.format_exc())
 
 
 @app.get("/category-analysis", response_class=HTMLResponse)

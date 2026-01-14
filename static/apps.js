@@ -27,27 +27,34 @@ async function loadApps() {
         }
         
         listEl.innerHTML = apps.map(app => `
-            <div class="flex items-center justify-between p-4 border border-notion-border rounded hover:bg-notion-hover transition-colors cursor-pointer" onclick="showAppDetail(${app.id})">
-                <div class="flex-1">
-                    <h3 class="font-semibold text-lg text-notion-text mb-1">${app.name}</h3>
-                    <div class="text-sm text-notion-text-light">
-                        ${app.category || '카테고리 없음'} • 
-                        평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐ • 
-                        리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}개
+            <div class="p-4 border border-notion-border rounded hover:bg-notion-hover transition-colors cursor-pointer" onclick="showAppDetail(${app.id})">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-lg text-notion-text mb-2">${app.name}</h3>
+                        <div class="flex flex-wrap gap-2 text-sm text-notion-text-light mb-2">
+                            <span>${app.category || '카테고리 없음'}</span>
+                            <span>•</span>
+                            <span>평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐</span>
+                            <span>•</span>
+                            <span>리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}개</span>
+                            <span>•</span>
+                            <span>${app.price_model === 'free' ? '무료' : app.price_model === 'paid' ? '유료' : app.price_model === 'subscription' ? '구독' : 'N/A'}</span>
+                        </div>
+                        ${app.description ? `
+                            <div class="mt-3 p-3 bg-notion-hover rounded border border-notion-border">
+                                <p class="text-sm text-notion-text line-clamp-3">${app.description}</p>
+                            </div>
+                        ` : ''}
                     </div>
-                    ${app.description ? `<p class="text-sm text-notion-text-light mt-2 line-clamp-2">${app.description.substring(0, 150)}...</p>` : ''}
-                </div>
-                <div class="flex flex-col gap-2 ml-6 items-end">
-                    <div class="flex gap-2">
-                        <span class="px-2 py-1 text-xs rounded ${app.difficulty_score <= 1.0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-gray-50 text-gray-700 border border-gray-200'}">
-                            난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
-                        </span>
-                        <span class="px-2 py-1 text-xs rounded ${app.marketability_score >= 6.0 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-gray-50 text-gray-700 border border-gray-200'}">
-                            시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
-                        </span>
-                    </div>
-                    <div class="text-xs text-notion-text-light">
-                        ${app.price_model === 'free' ? '무료' : app.price_model === 'paid' ? '유료' : app.price_model === 'subscription' ? '구독' : 'N/A'}
+                    <div class="flex flex-col gap-2 items-end flex-shrink-0">
+                        <div class="flex gap-2">
+                            <span class="px-3 py-1.5 text-sm rounded font-medium ${app.difficulty_score <= 1.0 ? 'bg-green-50 text-green-700 border border-green-200' : app.difficulty_score <= 1.5 ? 'bg-yellow-50 text-yellow-700 border border-yellow-200' : 'bg-red-50 text-red-700 border border-red-200'}">
+                                난이도 ${app.difficulty_score ? app.difficulty_score.toFixed(1) : 'N/A'}
+                            </span>
+                            <span class="px-3 py-1.5 text-sm rounded font-medium ${app.marketability_score >= 7.0 ? 'bg-blue-50 text-blue-700 border border-blue-200' : app.marketability_score >= 5.0 ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-gray-50 text-gray-700 border border-gray-200'}">
+                                시장성 ${app.marketability_score ? app.marketability_score.toFixed(1) : 'N/A'}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
