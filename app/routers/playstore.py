@@ -488,15 +488,23 @@ async def get_mvp_productivity_apps(
         # 2. 필터링: 난이도, 시장성, 기능 수
         filtered_apps = []
         for app in productivity_apps:
-            # 난이도 체크
-            if app.difficulty_score is None or app.difficulty_score > max_difficulty:
+            # 난이도가 없으면 설명 기반으로 추정
+            if app.difficulty_score is None or app.difficulty_score == 0.0:
+                from app.services.difficulty_scorer import estimate_difficulty_from_description
+                estimated_difficulty = estimate_difficulty_from_description(app.description or "")
+                if estimated_difficulty > max_difficulty:
+                    continue
+                # 추정된 난이도로 업데이트 (다음 조회 시 사용)
+                app.difficulty_score = estimated_difficulty
+                db.commit()
+            elif app.difficulty_score > max_difficulty:
                 continue
             
             # 시장성 체크
             if app.marketability_score is None or app.marketability_score < min_marketability:
                 continue
             
-            # 기능 수 체크 (MVP에 가까운 앱)
+            # 기능 수 체크 (MVP에 가까운 앱) - 기능이 없어도 설명 기반으로 추정 가능한 앱은 포함
             feature_count = len(app.features) if app.features else 0
             if feature_count > max_features:
                 continue

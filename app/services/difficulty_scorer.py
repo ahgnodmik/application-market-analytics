@@ -54,6 +54,66 @@ def calculate_app_difficulty(feature_scores: list[float]) -> float:
     return sum(feature_scores) / len(feature_scores)
 
 
+def estimate_difficulty_from_description(description: str) -> float:
+    """
+    앱 설명을 기반으로 난이도 추정 (기능이 없을 때 사용)
+    
+    Returns:
+        0.0 ~ 2.0 사이의 난이도 점수
+    """
+    if not description:
+        return 0.0
+    
+    desc_lower = description.lower()
+    
+    # 고난이도 키워드 (2.0)
+    high_difficulty_keywords = [
+        'ai', 'artificial intelligence', 'machine learning', 'ml', 'deep learning',
+        'real-time', 'realtime', 'real time', 'live', 'streaming',
+        'blockchain', 'cryptocurrency', 'crypto', 'nft',
+        '3d', 'vr', 'ar', 'virtual reality', 'augmented reality',
+        'complex', 'advanced', 'enterprise', 'enterprise-grade'
+    ]
+    
+    # 중간 난이도 키워드 (1.0)
+    medium_difficulty_keywords = [
+        'api', 'integration', 'sync', 'synchronization', 'cloud',
+        'payment', 'purchase', 'subscription', 'billing', 'in-app purchase',
+        'social', 'login', 'authentication', 'auth', 'sign in',
+        'video', 'audio', 'media', 'playback', 'recording',
+        'database', 'server', 'backend', 'rest', 'graphql'
+    ]
+    
+    # 단순 기능 키워드 (0.0)
+    simple_keywords = [
+        'note', 'memo', 'todo', 'list', 'reminder', 'calendar',
+        'calculator', 'converter', 'timer', 'stopwatch',
+        'simple', 'easy', 'basic', 'lightweight', 'minimal'
+    ]
+    
+    # 키워드 매칭
+    high_count = sum(1 for keyword in high_difficulty_keywords if keyword in desc_lower)
+    medium_count = sum(1 for keyword in medium_difficulty_keywords if keyword in desc_lower)
+    simple_count = sum(1 for keyword in simple_keywords if keyword in desc_lower)
+    
+    # 점수 계산
+    if high_count > 0:
+        return min(2.0, 1.5 + (high_count * 0.1))
+    elif medium_count > 0:
+        return min(1.5, 0.5 + (medium_count * 0.15))
+    elif simple_count > 0:
+        return 0.0
+    else:
+        # 키워드가 없으면 설명 길이와 복잡도로 추정
+        word_count = len(description.split())
+        if word_count > 100:
+            return 1.0  # 긴 설명은 중간 난이도
+        elif word_count > 50:
+            return 0.5
+        else:
+            return 0.0
+
+
 
 
 

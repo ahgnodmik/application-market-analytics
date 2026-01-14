@@ -122,11 +122,26 @@ def store_apps(
                     description=existing.description or ""
                 )
                 
+                # 난이도 점수 재계산 (기능이 없으면 설명 기반 추정)
+                if not existing.features or len(existing.features) == 0:
+                    from app.services.difficulty_scorer import estimate_difficulty_from_description
+                    existing.difficulty_score = estimate_difficulty_from_description(existing.description or "")
+                else:
+                    # 기능이 있으면 기능 기반 계산
+                    feature_scores = [f.difficulty_score or 0.0 for f in existing.features]
+                    existing.difficulty_score = calculate_app_difficulty(feature_scores)
+                
                 db.commit()
                 updated_count += 1
                 
             elif not existing:
                 # 새 앱 생성
+                description = app_data.get("description", "")
+                
+                # 난이도 점수 계산 (기능이 없으면 설명 기반 추정)
+                from app.services.difficulty_scorer import estimate_difficulty_from_description
+                estimated_difficulty = estimate_difficulty_from_description(description)
+                
                 db_app = App(
                     name=app_data.get("name", "Unknown"),
                     package_name=package_name,
@@ -134,15 +149,15 @@ def store_apps(
                     rating=app_data.get("rating"),
                     review_count=app_data.get("review_count", 0),
                     price_model=app_data.get("price_model", "free"),
-                    description=app_data.get("description", ""),
+                    description=description,
                     last_update=app_data.get("last_update"),
-                    difficulty_score=0.0,  # 나중에 기능 분석 시 계산
+                    difficulty_score=estimated_difficulty,  # 설명 기반 추정
                     marketability_score=calculate_marketability_score(
                         review_count=app_data.get("review_count", 0),
                         rating=app_data.get("rating", 0.0),
                         last_update=app_data.get("last_update"),
                         price_model=app_data.get("price_model", "free"),
-                        description=app_data.get("description", "")
+                        description=description
                     )
                 )
                 
