@@ -431,17 +431,18 @@ async def get_last_fetch_info(db: Session = Depends(get_db)):
 
 @router.get("/mvp-productivity-apps")
 async def get_mvp_productivity_apps(
-    limit: int = 20,
+    limit: int = 10,
     max_difficulty: float = 1.5,
     min_marketability: float = 5.0,
     max_features: int = 5,
     db: Session = Depends(get_db)
 ):
     """
-    생산성 카테고리의 무료 앱 중 MVP에 가깝고 난이도가 낮은 앱 목록 자동 생성
+    생산성, 라이프스타일, 도구 카테고리의 무료 앱 중 MVP에 가깝고 난이도가 낮은 앱 목록 자동 생성
     
-    필터 조건:
-    - 카테고리: 생산성 (APPLICATION_PRODUCTIVITY)
+    기본 설정:
+    - 카테고리: 생산성, 라이프스타일, 도구 (순환)
+    - 각 카테고리당 앱 수: 10개 (기본값)
     - 가격 모델: 무료
     - 난이도: max_difficulty 이하
     - 시장성: min_marketability 이상
@@ -450,86 +451,116 @@ async def get_mvp_productivity_apps(
     import logging
     logger = logging.getLogger(__name__)
     
+    # 기본 카테고리 목록 (순환)
+    default_categories = [
+        "APPLICATION_PRODUCTIVITY",  # 생산성
+        "APPLICATION_LIFESTYLE",     # 라이프스타일
+        "APPLICATION_TOOLS"          # 도구
+    ]
+    
+    category_names = {
+        "APPLICATION_PRODUCTIVITY": "생산성",
+        "APPLICATION_LIFESTYLE": "라이프스타일",
+        "APPLICATION_TOOLS": "도구"
+    }
+    
     try:
-        # 1. 생산성 카테고리의 무료 앱 가져오기 (DB에 없으면 스크래핑)
-        productivity_apps = db.query(App).filter(
-            App.package_name.isnot(None),
-            App.package_name != "",
-            App.price_model == "free",
-            App.category == "APPLICATION_PRODUCTIVITY"
-        ).all()
+        all_filtered_apps = []
         
-        # DB에 생산성 앱이 적으면 자동으로 가져오기
-        if len(productivity_apps) < 10:
-            logger.info("Productivity apps in DB are insufficient, fetching from Play Store...")
-            try:
-                apps_data = await fetch_top_apps(
-                    category="top_free",
-                    limit=50,
-                    play_category="APPLICATION_PRODUCTIVITY"
-                )
-                
-                # 앱 저장 및 점수 계산
-                from app.services.pipeline import normalize_app_data, store_apps
-                normalized = normalize_app_data(apps_data)
-                store_result = store_apps(normalized, db, update_existing=True)
-                logger.info(f"Stored {store_result.get('saved_count', 0)} productivity apps")
-                
-                # 다시 조회
-                productivity_apps = db.query(App).filter(
-                    App.package_name.isnot(None),
-                    App.package_name != "",
-                    App.price_model == "free",
-                    App.category == "APPLICATION_PRODUCTIVITY"
-                ).all()
-            except Exception as e:
-                logger.error(f"Error fetching productivity apps: {e}", exc_info=True)
-        
-        # 2. 필터링: 난이도, 시장성, 기능 수
-        filtered_apps = []
-        for app in productivity_apps:
-            # 난이도가 없으면 설명 기반으로 추정
-            if app.difficulty_score is None or app.difficulty_score == 0.0:
-                from app.services.difficulty_scorer import estimate_difficulty_from_description
-                estimated_difficulty = estimate_difficulty_from_description(app.description or "")
-                if estimated_difficulty > max_difficulty:
+        # 각 카테고리별로 처리
+        for category_key in default_categories:
+            category_name = category_names.get(category_key, category_key)
+            logger.info(f"Processing category: {category_name} ({category_key})")
+            
+            # 1. 해당 카테고리의 무료 앱 가져오기 (DB에 없으면 스크래핑)
+            category_apps = db.query(App).filter(
+                App.package_name.isnot(None),
+                App.package_name != "",
+                App.price_model == "free",
+                App.category == category_key
+            ).all()
+            
+            # DB에 앱이 적으면 자동으로 가져오기
+            if len(category_apps) < limit:
+                logger.info(f"{category_name} apps in DB are insufficient ({len(category_apps)} < {limit}), fetching from Play Store...")
+                try:
+                    apps_data = await fetch_top_apps(
+                        category="top_free",
+                        limit=limit * 2,  # 여유있게 가져오기
+                        play_category=category_key
+                    )
+                    
+                    # 앱 저장 및 점수 계산
+                    from app.services.pipeline import normalize_app_data, store_apps
+                    normalized = normalize_app_data(apps_data)
+                    store_result = store_apps(normalized, db, update_existing=True)
+                    logger.info(f"Stored {store_result.get('saved_count', 0)} {category_name} apps")
+                    
+                    # 다시 조회
+                    category_apps = db.query(App).filter(
+                        App.package_name.isnot(None),
+                        App.package_name != "",
+                        App.price_model == "free",
+                        App.category == category_key
+                    ).all()
+                except Exception as e:
+                    logger.error(f"Error fetching {category_name} apps: {e}", exc_info=True)
+            
+            # 2. 필터링: 난이도, 시장성, 기능 수
+            filtered_apps = []
+            for app in category_apps:
+                # 난이도가 없으면 설명 기반으로 추정
+                if app.difficulty_score is None or app.difficulty_score == 0.0:
+                    from app.services.difficulty_scorer import estimate_difficulty_from_description
+                    estimated_difficulty = estimate_difficulty_from_description(app.description or "")
+                    if estimated_difficulty > max_difficulty:
+                        continue
+                    # 추정된 난이도로 업데이트 (다음 조회 시 사용)
+                    app.difficulty_score = estimated_difficulty
+                    db.commit()
+                elif app.difficulty_score > max_difficulty:
                     continue
-                # 추정된 난이도로 업데이트 (다음 조회 시 사용)
-                app.difficulty_score = estimated_difficulty
-                db.commit()
-            elif app.difficulty_score > max_difficulty:
-                continue
+                
+                # 시장성 체크
+                if app.marketability_score is None or app.marketability_score < min_marketability:
+                    continue
+                
+                # 기능 수 체크 (MVP에 가까운 앱) - 기능이 없어도 설명 기반으로 추정 가능한 앱은 포함
+                feature_count = len(app.features) if app.features else 0
+                if feature_count > max_features:
+                    continue
+                
+                filtered_apps.append(app)
             
-            # 시장성 체크
-            if app.marketability_score is None or app.marketability_score < min_marketability:
-                continue
+            # 3. 정렬: 효율성 순 (시장성 높고 난이도 낮은 순)
+            filtered_apps.sort(
+                key=lambda a: (
+                    -(a.marketability_score or 0),  # 시장성 높은 순
+                    a.difficulty_score or 999  # 난이도 낮은 순
+                )
+            )
             
-            # 기능 수 체크 (MVP에 가까운 앱) - 기능이 없어도 설명 기반으로 추정 가능한 앱은 포함
-            feature_count = len(app.features) if app.features else 0
-            if feature_count > max_features:
-                continue
-            
-            filtered_apps.append(app)
+            # 4. 각 카테고리에서 limit개만 선택
+            category_result = filtered_apps[:limit]
+            all_filtered_apps.extend(category_result)
+            logger.info(f"{category_name}: Found {len(filtered_apps)} apps, selected {len(category_result)}")
         
-        # 3. 정렬: 효율성 순 (시장성 높고 난이도 낮은 순)
-        filtered_apps.sort(
+        # 5. 전체 결과를 다시 정렬 (시장성 높고 난이도 낮은 순)
+        all_filtered_apps.sort(
             key=lambda a: (
                 -(a.marketability_score or 0),  # 시장성 높은 순
                 a.difficulty_score or 999  # 난이도 낮은 순
             )
         )
         
-        # 4. 제한된 수만 반환
-        result_apps = filtered_apps[:limit]
-        
-        # 5. 응답 형식 변환
-        from app.schemas import AppResponse
+        # 6. 응답 형식 변환
         return [
             {
                 "id": app.id,
                 "name": app.name,
                 "package_name": app.package_name,
                 "category": app.category,
+                "category_name": category_names.get(app.category, app.category),
                 "rating": app.rating,
                 "review_count": app.review_count,
                 "price_model": app.price_model,
@@ -539,7 +570,7 @@ async def get_mvp_productivity_apps(
                 "feature_count": len(app.features) if app.features else 0,
                 "created_at": app.created_at.isoformat() if app.created_at else None
             }
-            for app in result_apps
+            for app in all_filtered_apps
         ]
         
     except Exception as e:
@@ -549,7 +580,7 @@ async def get_mvp_productivity_apps(
         logger.error(f"Traceback: {error_detail}")
         raise HTTPException(
             status_code=500,
-            detail=f"MVP 생산성 앱 목록을 가져오는 중 오류가 발생했습니다: {str(e)}"
+            detail=f"MVP 앱 목록을 가져오는 중 오류가 발생했습니다: {str(e)}"
         )
 
 
