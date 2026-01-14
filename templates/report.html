@@ -5,7 +5,45 @@
     <!-- 헤더 -->
     <div>
         <h1 class="text-3xl font-semibold text-notion-text mb-2">AI 리포트</h1>
-        <p class="text-notion-text-light text-base">ChatGPT를 활용한 안드로이드 마켓 종합 분석 리포트</p>
+        <p class="text-notion-text-light text-base">무료 앱 또는 구현 난이도가 낮은 앱을 기반으로 AI 리포트를 생성합니다</p>
+    </div>
+    
+    <!-- 앱 수집 및 필터링 -->
+    <div class="notion-card p-5 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+        <h2 class="text-lg font-semibold text-notion-text mb-4">📊 분석 대상 앱 수집</h2>
+        <div class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-notion-text mb-2">필터 조건:</label>
+                    <select id="filter-type" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                        <option value="free">무료 앱만</option>
+                        <option value="low-difficulty">구현 난이도 낮은 앱 (≤1.0)</option>
+                        <option value="free-or-low">무료 또는 난이도 낮은 앱</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-notion-text mb-2">목표 앱 수:</label>
+                    <input type="number" id="target-count" value="5" min="5" max="50" 
+                           class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue">
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <button id="collect-apps-btn" onclick="collectApps()" class="notion-button notion-button-blue">
+                    앱 수집 시작
+                </button>
+                <div id="collection-status" class="text-sm text-notion-text-light">
+                    <span id="collected-count">0</span>개 수집됨
+                </div>
+            </div>
+            
+            <div id="collection-progress" class="hidden">
+                <div class="bg-notion-border rounded-full h-2 overflow-hidden">
+                    <div id="collection-progress-bar" class="bg-green-500 h-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <p class="text-xs text-notion-text-light mt-1" id="collection-progress-text">수집 중...</p>
+            </div>
+        </div>
     </div>
     
     <!-- 리포트 생성 -->
@@ -13,13 +51,16 @@
         <h2 class="text-lg font-semibold text-notion-text mb-4">리포트 생성</h2>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-notion-text mb-2">분석할 앱 선택 (선택하지 않으면 전체 앱 분석)</label>
+                <label class="block text-sm font-medium text-notion-text mb-2">분석할 앱 목록 (수집된 앱 중 선택)</label>
+                <div id="selected-apps-info" class="mb-2 p-3 bg-notion-hover rounded text-sm text-notion-text-light">
+                    앱을 수집한 후 선택할 수 있습니다.
+                </div>
                 <select id="app-select" multiple class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue min-h-[100px]">
-                    <option value="">로딩 중...</option>
+                    <option value="">앱을 먼저 수집해주세요</option>
                 </select>
-                <p class="text-xs text-notion-text-light mt-1">Ctrl/Cmd 키를 누른 채로 여러 개 선택 가능</p>
+                <p class="text-xs text-notion-text-light mt-1">Ctrl/Cmd 키를 누른 채로 여러 개 선택 가능 (최소 5개 권장)</p>
             </div>
-            <button onclick="generateReport()" class="notion-button notion-button-green">
+            <button id="generate-report-btn" onclick="generateReport()" class="notion-button notion-button-green disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 📊 리포트 생성
             </button>
         </div>
@@ -53,24 +94,147 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 let allApps = [];
+let filteredApps = [];
+let collectedApps = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadApps();
+    updateUI();
 });
 
 async function loadApps() {
     try {
         const response = await fetch('/api/apps/playstore?limit=1000');
         allApps = await response.json();
-        
-        const select = document.getElementById('app-select');
-        select.innerHTML = '<option value="">전체 앱 분석</option>' +
-            allApps.map(app => `<option value="${app.id}">${app.name}</option>`).join('');
+        filterApps();
     } catch (error) {
         console.error('Error loading apps:', error);
         document.getElementById('app-select').innerHTML = '<option value="">앱 목록을 불러올 수 없습니다</option>';
     }
 }
+
+function filterApps() {
+    const filterType = document.getElementById('filter-type').value;
+    const targetCount = parseInt(document.getElementById('target-count').value) || 5;
+    
+    filteredApps = [];
+    
+    if (filterType === 'free') {
+        filteredApps = allApps.filter(app => 
+            app.price_model === 'free' || app.price_model === 'Free' || !app.price_model || app.price_model === ''
+        );
+    } else if (filterType === 'low-difficulty') {
+        filteredApps = allApps.filter(app => 
+            app.difficulty_score !== null && app.difficulty_score <= 1.0
+        ).sort((a, b) => (a.difficulty_score || 999) - (b.difficulty_score || 999));
+    } else if (filterType === 'free-or-low') {
+        filteredApps = allApps.filter(app => 
+            (app.price_model === 'free' || app.price_model === 'Free' || !app.price_model || app.price_model === '') ||
+            (app.difficulty_score !== null && app.difficulty_score <= 1.0)
+        ).sort((a, b) => {
+            const aFree = (a.price_model === 'free' || a.price_model === 'Free' || !a.price_model || a.price_model === '') ? 0 : 1;
+            const bFree = (b.price_model === 'free' || b.price_model === 'Free' || !b.price_model || b.price_model === '') ? 0 : 1;
+            if (aFree !== bFree) return aFree - bFree;
+            return (a.difficulty_score || 999) - (b.difficulty_score || 999);
+        });
+    }
+    
+    // 목표 개수만큼만 선택
+    collectedApps = filteredApps.slice(0, Math.min(targetCount, filteredApps.length));
+    updateUI();
+}
+
+async function collectApps() {
+    const btn = document.getElementById('collect-apps-btn');
+    const progress = document.getElementById('collection-progress');
+    const progressBar = document.getElementById('collection-progress-bar');
+    const progressText = document.getElementById('collection-progress-text');
+    const targetCount = parseInt(document.getElementById('target-count').value) || 5;
+    
+    btn.disabled = true;
+    progress.classList.remove('hidden');
+    
+    try {
+        // 현재 필터링된 앱이 목표 개수보다 적으면 더 수집 시도
+        if (filteredApps.length < targetCount) {
+            progressText.textContent = `필요한 앱 수집 중... (${filteredApps.length}/${targetCount})`;
+            
+            // Play Store에서 앱 수집 시도 (간단한 시뮬레이션)
+            // 실제로는 백엔드 API를 호출하여 앱을 수집해야 함
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // 다시 앱 목록 로드
+            await loadApps();
+        }
+        
+        // 수집된 앱으로 UI 업데이트
+        updateAppSelect();
+        updateUI();
+        
+        progressBar.style.width = '100%';
+        progressText.textContent = `수집 완료! ${collectedApps.length}개 앱 준비됨`;
+        
+        setTimeout(() => {
+            progress.classList.add('hidden');
+        }, 2000);
+    } catch (error) {
+        console.error('Error collecting apps:', error);
+        progressText.textContent = '수집 중 오류 발생';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function updateAppSelect() {
+    const select = document.getElementById('app-select');
+    
+    if (collectedApps.length === 0) {
+        select.innerHTML = '<option value="">앱을 먼저 수집해주세요</option>';
+        return;
+    }
+    
+    select.innerHTML = collectedApps.map(app => {
+        const difficulty = app.difficulty_score !== null ? app.difficulty_score.toFixed(1) : 'N/A';
+        const price = app.price_model === 'free' || app.price_model === 'Free' || !app.price_model ? '무료' : '유료';
+        return `<option value="${app.id}">${app.name} (${price}, 난이도: ${difficulty})</option>`;
+    }).join('');
+    
+    // 기본적으로 모든 앱 선택
+    Array.from(select.options).forEach(opt => {
+        if (opt.value) opt.selected = true;
+    });
+}
+
+function updateUI() {
+    const collectedCount = collectedApps.length;
+    const targetCount = parseInt(document.getElementById('target-count').value) || 5;
+    const generateBtn = document.getElementById('generate-report-btn');
+    const collectedCountSpan = document.getElementById('collected-count');
+    const selectedAppsInfo = document.getElementById('selected-apps-info');
+    
+    collectedCountSpan.textContent = collectedCount;
+    
+    if (collectedCount >= targetCount) {
+        generateBtn.disabled = false;
+        selectedAppsInfo.textContent = `✅ ${collectedCount}개 앱이 수집되었습니다. 리포트 생성을 시작할 수 있습니다.`;
+        selectedAppsInfo.className = 'mb-2 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-800';
+    } else {
+        generateBtn.disabled = true;
+        selectedAppsInfo.textContent = `⚠️ ${collectedCount}개 앱이 수집되었습니다. 최소 ${targetCount}개가 필요합니다.`;
+        selectedAppsInfo.className = 'mb-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800';
+    }
+    
+    // 진행률 업데이트
+    const progressBar = document.getElementById('collection-progress-bar');
+    if (progressBar) {
+        const progress = Math.min((collectedCount / targetCount) * 100, 100);
+        progressBar.style.width = `${progress}%`;
+    }
+}
+
+// 필터 타입 변경 시 자동 필터링
+document.getElementById('filter-type').addEventListener('change', filterApps);
+document.getElementById('target-count').addEventListener('change', filterApps);
 
 async function generateReport() {
     const select = document.getElementById('app-select');

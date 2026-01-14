@@ -96,22 +96,40 @@
             <a href="/" class="text-xl font-semibold text-notion-text no-underline">📊 Market Analytics</a>
         </div>
         <nav class="flex-1 p-3 overflow-y-auto">
-            <a href="/" class="notion-nav-item {% if request.url.path == '/' %}active{% endif %}">
-                대시보드
+            <a href="/" class="notion-nav-item" id="nav-dashboard">
+                🏠 대시보드 (카테고리 분석)
             </a>
-            <a href="/apps" class="notion-nav-item {% if request.url.path == '/apps' %}active{% endif %}">
-                앱 목록
+            <a href="/apps" class="notion-nav-item" id="nav-apps">
+                📱 앱 목록
             </a>
-            <a href="/analysis" class="notion-nav-item {% if request.url.path == '/analysis' %}active{% endif %}">
-                분석
+            <a href="/analysis" class="notion-nav-item" id="nav-analysis">
+                📊 분석
             </a>
-            <a href="/category-analysis" class="notion-nav-item {% if request.url.path == '/category-analysis' %}active{% endif %}">
-                카테고리 분석
-            </a>
-            <a href="/report" class="notion-nav-item {% if request.url.path == '/report' %}active{% endif %}">
-                AI 리포트
+            <a href="/report" class="notion-nav-item" id="nav-report">
+                🤖 AI 리포트
             </a>
         </nav>
+        <script>
+            // 현재 경로에 따라 활성 메뉴 표시
+            (function() {
+                const path = window.location.pathname;
+                const navMap = {
+                    '/': 'nav-dashboard',
+                    '/apps': 'nav-apps',
+                    '/analysis': 'nav-analysis',
+                    '/report': 'nav-report',
+                    '/category-analysis': 'nav-dashboard'
+                };
+                
+                const activeId = navMap[path] || navMap['/'];
+                if (activeId) {
+                    const activeNav = document.getElementById(activeId);
+                    if (activeNav) {
+                        activeNav.classList.add('active');
+                    }
+                }
+            })();
+        </script>
     </aside>
 
     <!-- 메인 콘텐츠 -->
