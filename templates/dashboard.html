@@ -84,30 +84,6 @@
         </div>
     </div>
 
-    <!-- 빠른 작업 -->
-    <div class="notion-card p-5">
-        <h2 class="text-lg font-semibold text-notion-text mb-4">빠른 작업</h2>
-        <div class="flex flex-wrap gap-3">
-            <a href="/category-analysis" class="notion-button notion-button-blue no-underline inline-block">
-                카테고리별 앱 가져오기
-            </a>
-            <a href="/analysis" class="notion-button no-underline inline-block">
-                분석 보기
-            </a>
-        </div>
-    </div>
-
-    <!-- 최근 수집된 앱 -->
-    <div class="notion-card p-5">
-        <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-notion-text">최근 수집된 앱</h2>
-            <a href="/apps" class="text-sm text-notion-blue hover:underline">전체 보기 →</a>
-        </div>
-        <div id="recent-apps" class="space-y-3">
-            <p class="text-notion-text-light text-sm">로딩 중...</p>
-        </div>
-    </div>
-
     <!-- MVP 생산성 앱 추천 -->
     <div class="notion-card p-5 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
         <div class="flex items-center justify-between mb-4">
@@ -141,7 +117,6 @@ let categories = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     await loadStatistics();
-    await loadRecentApps();
     await loadRecommendations();
     await loadMvpProductivityApps();
 
