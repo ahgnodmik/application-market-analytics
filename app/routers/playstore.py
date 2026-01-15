@@ -118,22 +118,54 @@ async def fetch_rankings_impl(
         updated_apps = []
         skipped_count = 0
         
-        # 중복 제거 (같은 패키지 이름 제거)
+        # YouTube와 Instagram 제외 필터
+        excluded_apps = {
+            "com.google.android.youtube",  # YouTube
+            "com.instagram.android",  # Instagram
+            "youtube",
+            "instagram"
+        }
+        
+        # 중복 제거 및 제외 앱 필터링
         unique_apps = {}
         for app in apps_data:
-            package_name = app.get("package_name")
+            package_name = app.get("package_name", "").lower()
+            app_name = app.get("name", "").lower()
+            
+            # YouTube/Instagram 제외
+            if any(excluded in package_name or excluded in app_name for excluded in excluded_apps):
+                continue
+            
+            # 중복 제거
             if package_name and package_name not in unique_apps:
                 unique_apps[package_name] = app
         
         apps_data_unique = list(unique_apps.values())
         
-        # 랜덤 수집을 위해 앱 데이터를 섞기
-        import random
-        shuffled_apps = apps_data_unique.copy()
-        random.shuffle(shuffled_apps)
+        # 난이도 점수 계산 및 필터링
+        from app.services.difficulty_scorer import estimate_difficulty_from_description
         
-        # 최대 5개만 랜덤하게 선택
-        apps_to_process = shuffled_apps[:min(5, len(shuffled_apps))]
+        apps_with_difficulty = []
+        for app in apps_data_unique:
+            description = app.get("description", "")
+            difficulty = estimate_difficulty_from_description(description)
+            app["estimated_difficulty"] = difficulty
+            apps_with_difficulty.append(app)
+        
+        # 난이도가 낮은 앱만 필터링 (1.0 이하)
+        low_difficulty_apps = [app for app in apps_with_difficulty if app.get("estimated_difficulty", 2.0) <= 1.0]
+        
+        # 난이도가 낮은 앱이 충분하지 않으면 난이도 순으로 정렬하여 낮은 것부터 선택
+        if len(low_difficulty_apps) < 5:
+            # 난이도 순으로 정렬 (낮은 것부터)
+            apps_with_difficulty.sort(key=lambda x: x.get("estimated_difficulty", 2.0))
+            # 난이도가 낮은 상위 5개 선택
+            apps_to_process = apps_with_difficulty[:min(5, len(apps_with_difficulty))]
+        else:
+            # 난이도가 낮은 앱 중에서 랜덤 선택
+            import random
+            random.shuffle(low_difficulty_apps)
+            apps_to_process = low_difficulty_apps[:min(5, len(low_difficulty_apps))]
         
         for app_data in apps_to_process:
             try:
