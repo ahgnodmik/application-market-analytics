@@ -81,6 +81,14 @@ body {
   background: #0d6b0d;
 }
 
+.notion-button-purple {
+  background: #9333ea;
+}
+
+.notion-button-purple:hover {
+  background: #7e22ce;
+}
+
 .notion-link {
   color: var(--notion-text);
   text-decoration: none;

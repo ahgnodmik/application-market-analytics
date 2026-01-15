@@ -14,9 +14,10 @@
         <p class="text-sm text-notion-text-light mb-4">Play Store 카테고리를 선택하여 GPT로 분석하고 추천 앱 타입을 확인하세요</p>
         
         <div class="mb-4">
-            <button id="dashboardLoadCategoriesBtn" class="notion-button notion-button-blue mb-4">
-                카테고리 목록 불러오기
+            <button id="dashboardLoadCategoriesBtn" class="notion-button notion-button-blue mb-2">
+                카테고리 새로고침
             </button>
+            <p id="dashboardCategoryStatus" class="text-xs text-notion-text-light mb-2 hidden"></p>
             <div id="dashboardCategoriesContainer" class="hidden">
                 <label class="block text-sm font-medium text-notion-text mb-2">분석할 카테고리 선택:</label>
                 <select id="dashboardCategorySelect" class="w-full px-3 py-2 border border-notion-border rounded focus:outline-none focus:ring-2 focus:ring-notion-blue mb-3">
@@ -60,6 +61,102 @@
                     <a href="/category-analysis" class="text-sm text-notion-blue hover:underline">상세 분석 보기 →</a>
                 </div>
                 <div id="dashboardAnalysisContent" class="space-y-6"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 앱 수집 섹션 -->
+    <div class="notion-card p-5 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-notion-text">📥 앱 수집</h2>
+                <p class="text-sm text-notion-text-light mt-1">생산성, 라이프스타일, 도구 카테고리에서 각 10개씩 앱을 수집합니다</p>
+            </div>
+            <button id="collectAppsBtn" class="notion-button notion-button-purple">
+                앱 수집 시작
+            </button>
+        </div>
+        
+        <div id="collectionProgress" class="hidden mb-4">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">생산성</span>
+                    <span id="productivityStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="productivityProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">라이프스타일</span>
+                    <span id="lifestyleStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="lifestyleProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">도구</span>
+                    <span id="toolsStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="toolsProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="collectionResult" class="hidden mt-4">
+            <div class="border-t border-purple-300 pt-4">
+                <h3 class="text-md font-semibold text-notion-text mb-3">수집된 앱 목록</h3>
+                <div id="collectedAppsList" class="space-y-2 max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 앱 수집 섹션 -->
+    <div class="notion-card p-5 bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-notion-text">📥 앱 수집</h2>
+                <p class="text-sm text-notion-text-light mt-1">생산성, 라이프스타일, 도구 카테고리에서 각 10개씩 앱을 수집합니다</p>
+            </div>
+            <button id="collectAppsBtn" class="notion-button notion-button-purple">
+                앱 수집 시작
+            </button>
+        </div>
+        
+        <div id="collectionProgress" class="hidden mb-4">
+            <div class="space-y-3">
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">생산성</span>
+                    <span id="productivityStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="productivityProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">라이프스타일</span>
+                    <span id="lifestyleStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="lifestyleProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-notion-text">도구</span>
+                    <span id="toolsStatus" class="text-notion-text-light">대기 중...</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="toolsProgress" class="bg-purple-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="collectionResult" class="hidden mt-4">
+            <div class="border-t border-purple-300 pt-4">
+                <h3 class="text-md font-semibold text-notion-text mb-3">수집된 앱 목록</h3>
+                <div id="collectedAppsList" class="space-y-2 max-h-96 overflow-y-auto"></div>
             </div>
         </div>
     </div>
@@ -119,16 +216,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStatistics();
     await loadRecommendations();
     await loadMvpProductivityApps();
+    await loadDashboardCategories(true);
 
     // 대시보드 카테고리 분석 기능
     document.getElementById('dashboardLoadCategoriesBtn').addEventListener('click', loadDashboardCategories);
     document.getElementById('dashboardCategorySelect').addEventListener('change', function() {
         document.getElementById('dashboardAnalyzeBtn').disabled = !this.value;
+        saveDashboardPrefs();
     });
+    document.getElementById('dashboardAnalysisLimit').addEventListener('change', saveDashboardPrefs);
+    document.getElementById('dashboardRankingType').addEventListener('change', saveDashboardPrefs);
     document.getElementById('dashboardAnalyzeBtn').addEventListener('click', analyzeDashboardCategory);
     
     // MVP 생산성 앱 새로고침 버튼
     document.getElementById('loadMvpAppsBtn').addEventListener('click', loadMvpProductivityApps);
+    
+    // 앱 수집 버튼
+    document.getElementById('collectAppsBtn').addEventListener('click', collectApps);
 });
 
 // 통계 로드
@@ -261,10 +365,37 @@ async function loadRecommendations() {
 }
 
 // 대시보드 카테고리 분석 기능
-async function loadDashboardCategories() {
+function saveDashboardPrefs() {
+    const category = document.getElementById('dashboardCategorySelect').value;
+    const limit = document.getElementById('dashboardAnalysisLimit').value;
+    const ranking = document.getElementById('dashboardRankingType').value;
+    localStorage.setItem('dashboard_category', category);
+    localStorage.setItem('dashboard_limit', limit);
+    localStorage.setItem('dashboard_ranking', ranking);
+}
+
+function applyDashboardPrefs() {
+    const savedCategory = localStorage.getItem('dashboard_category');
+    const savedLimit = localStorage.getItem('dashboard_limit');
+    const savedRanking = localStorage.getItem('dashboard_ranking');
+    
+    if (savedLimit) {
+        document.getElementById('dashboardAnalysisLimit').value = savedLimit;
+    }
+    if (savedRanking) {
+        document.getElementById('dashboardRankingType').value = savedRanking;
+    }
+    if (savedCategory) {
+        document.getElementById('dashboardCategorySelect').value = savedCategory;
+    }
+}
+
+async function loadDashboardCategories(isAutoLoad = false) {
     const btn = document.getElementById('dashboardLoadCategoriesBtn');
+    const status = document.getElementById('dashboardCategoryStatus');
     btn.disabled = true;
     btn.textContent = '로딩 중...';
+    status.classList.add('hidden');
     
     try {
         const response = await fetch('/api/playstore/categories');
@@ -277,15 +408,29 @@ async function loadDashboardCategories() {
                 categories.map(cat => `<option value="${cat.key}">${cat.name}</option>`).join('');
             
             document.getElementById('dashboardCategoriesContainer').classList.remove('hidden');
-            btn.textContent = '카테고리 목록 불러오기';
+            btn.textContent = '카테고리 새로고침';
             btn.disabled = false;
+            
+            applyDashboardPrefs();
+            if (!select.value) {
+                const defaultCategory = categories.find(cat => cat.key === 'APPLICATION_PRODUCTIVITY') || categories[0];
+                if (defaultCategory) {
+                    select.value = defaultCategory.key;
+                }
+            }
+            document.getElementById('dashboardAnalyzeBtn').disabled = !select.value;
+            saveDashboardPrefs();
+            
+            status.textContent = isAutoLoad ? '카테고리를 자동으로 불러왔습니다.' : '카테고리 목록을 새로고침했습니다.';
+            status.classList.remove('hidden');
         } else {
             throw new Error('카테고리 목록을 불러올 수 없습니다.');
         }
     } catch (error) {
         console.error('Error loading categories:', error);
-        alert('카테고리 목록을 불러오는 중 오류가 발생했습니다.');
-        btn.textContent = '카테고리 목록 불러오기';
+        status.textContent = '카테고리 목록을 불러오는 중 오류가 발생했습니다.';
+        status.classList.remove('hidden');
+        btn.textContent = '카테고리 새로고침';
         btn.disabled = false;
     }
 }
@@ -536,10 +681,16 @@ async function analyzeDashboardCategory() {
     const result = document.getElementById('dashboardAnalysisResult');
     const content = document.getElementById('dashboardAnalysisContent');
     const btn = document.getElementById('dashboardAnalyzeBtn');
+    const select = document.getElementById('dashboardCategorySelect');
+    const limitInput = document.getElementById('dashboardAnalysisLimit');
+    const rankingSelect = document.getElementById('dashboardRankingType');
     
     loading.classList.remove('hidden');
     result.classList.add('hidden');
     btn.disabled = true;
+    select.disabled = true;
+    limitInput.disabled = true;
+    rankingSelect.disabled = true;
     
     try {
         const response = await fetch('/api/playstore/analyze-category', {
@@ -578,6 +729,144 @@ async function analyzeDashboardCategory() {
     } finally {
         loading.classList.add('hidden');
         btn.disabled = false;
+        select.disabled = false;
+        limitInput.disabled = false;
+        rankingSelect.disabled = false;
+    }
+}
+
+// 앱 수집 함수
+async function collectApps() {
+    const btn = document.getElementById('collectAppsBtn');
+    const progressContainer = document.getElementById('collectionProgress');
+    const resultContainer = document.getElementById('collectionResult');
+    const collectedAppsList = document.getElementById('collectedAppsList');
+    
+    // 초기화
+    btn.disabled = true;
+    btn.textContent = '수집 중...';
+    progressContainer.classList.remove('hidden');
+    resultContainer.classList.add('hidden');
+    
+    // 진행 상태 초기화
+    const categories = [
+        { key: 'APPLICATION_PRODUCTIVITY', name: '생산성', statusId: 'productivityStatus', progressId: 'productivityProgress' },
+        { key: 'APPLICATION_LIFESTYLE', name: '라이프스타일', statusId: 'lifestyleStatus', progressId: 'lifestyleProgress' },
+        { key: 'APPLICATION_TOOLS', name: '도구', statusId: 'toolsStatus', progressId: 'toolsProgress' }
+    ];
+    
+    categories.forEach(cat => {
+        document.getElementById(cat.statusId).textContent = '대기 중...';
+        document.getElementById(cat.progressId).style.width = '0%';
+        document.getElementById(cat.progressId).classList.remove('bg-red-600');
+        document.getElementById(cat.progressId).classList.add('bg-purple-600');
+    });
+    
+    const allCollectedApps = [];
+    
+    try {
+        // 각 카테고리별로 순차적으로 수집
+        for (let i = 0; i < categories.length; i++) {
+            const category = categories[i];
+            
+            // 진행 상태 업데이트
+            document.getElementById(category.statusId).textContent = '수집 중...';
+            document.getElementById(category.progressId).style.width = '50%';
+            
+            try {
+                // 앱 수집 API 호출
+                const response = await fetch(`/api/playstore/fetch-rankings?category=top_free&limit=10&play_category=${category.key}&force=true`, {
+                    method: 'POST'
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                // 진행 상태 완료
+                document.getElementById(category.statusId).textContent = `완료 (${result.saved_count || 0}개)`;
+                document.getElementById(category.progressId).style.width = '100%';
+                
+                // 수집된 앱 정보 저장
+                if (result.saved_count > 0) {
+                    // 수집된 앱 목록 가져오기
+                    const appsResponse = await fetch(`/api/apps/playstore?limit=1000`);
+                    if (appsResponse.ok) {
+                        const apps = await appsResponse.json();
+                        const categoryApps = Array.isArray(apps) ? apps.filter(app => app.category === category.key) : [];
+                        // 최신 앱들만 가져오기 (마지막 saved_count개)
+                        const newApps = categoryApps.slice(-result.saved_count);
+                        allCollectedApps.push(...newApps.map(app => ({ ...app, category_name: category.name })));
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`Error collecting ${category.name} apps:`, error);
+                document.getElementById(category.statusId).textContent = `오류: ${error.message.substring(0, 30)}...`;
+                document.getElementById(category.progressId).style.width = '100%';
+                document.getElementById(category.progressId).classList.remove('bg-purple-600');
+                document.getElementById(category.progressId).classList.add('bg-red-600');
+            }
+            
+            // 다음 카테고리로 넘어가기 전 약간의 딜레이
+            if (i < categories.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+        
+        // 수집 완료 후 결과 표시
+        if (allCollectedApps.length > 0) {
+            // 카테고리별로 그룹화
+            const appsByCategory = {};
+            allCollectedApps.forEach(app => {
+                const catName = app.category_name || '기타';
+                if (!appsByCategory[catName]) {
+                    appsByCategory[catName] = [];
+                }
+                appsByCategory[catName].push(app);
+            });
+            
+            let html = '';
+            Object.keys(appsByCategory).forEach(catName => {
+                const catApps = appsByCategory[catName];
+                html += `
+                    <div class="mb-4">
+                        <h4 class="text-sm font-semibold text-notion-text mb-2">📂 ${catName} (${catApps.length}개)</h4>
+                        <div class="space-y-1">
+                            ${catApps.map(app => `
+                                <div class="p-2 bg-white border border-purple-200 rounded text-sm">
+                                    <span class="font-medium text-notion-text">${app.name || '앱 이름 없음'}</span>
+                                    <span class="text-notion-text-light ml-2">
+                                        평점: ${app.rating ? app.rating.toFixed(1) : 'N/A'} ⭐ | 
+                                        리뷰: ${app.review_count ? app.review_count.toLocaleString() : '0'}개
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            collectedAppsList.innerHTML = html;
+            resultContainer.classList.remove('hidden');
+            
+            // 통계 새로고침
+            await loadStatistics();
+            await loadMvpProductivityApps();
+        } else {
+            collectedAppsList.innerHTML = '<p class="text-notion-text-light text-sm">수집된 앱이 없습니다.</p>';
+            resultContainer.classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        console.error('Error in collectApps:', error);
+        alert(`앱 수집 중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '앱 수집 시작';
     }
 }
 </script>
