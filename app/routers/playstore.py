@@ -76,9 +76,18 @@ async def fetch_rankings_impl(
         
         # 데이터베이스에 저장
         saved_apps = []
+        updated_apps = []
         skipped_count = 0
         
-        for app_data in apps_data:
+        # 랜덤 수집을 위해 앱 데이터를 섞기
+        import random
+        shuffled_apps = apps_data.copy()
+        random.shuffle(shuffled_apps)
+        
+        # 최대 5개만 랜덤하게 선택
+        apps_to_process = shuffled_apps[:min(5, len(shuffled_apps))]
+        
+        for app_data in apps_to_process:
             try:
                 package_name = app_data.get("package_name")
                 
@@ -105,7 +114,7 @@ async def fetch_rankings_impl(
                         
                         db.commit()
                         db.refresh(existing)
-                        saved_apps.append(existing)
+                        updated_apps.append(existing)
                         continue
                 
                 # 새 앱 생성
@@ -138,13 +147,38 @@ async def fetch_rankings_impl(
                 skipped_count += 1
                 continue
         
+        # 저장/업데이트된 모든 앱 목록
+        all_processed_apps = saved_apps + updated_apps
+        
+        # 응답 형식 변환
+        from app.schemas import AppResponse
+        apps_response = [
+            {
+                "id": app.id,
+                "name": app.name,
+                "package_name": app.package_name,
+                "category": app.category,
+                "rating": app.rating,
+                "review_count": app.review_count,
+                "price_model": app.price_model,
+                "description": app.description,
+                "difficulty_score": app.difficulty_score,
+                "marketability_score": app.marketability_score,
+                "created_at": app.created_at.isoformat() if app.created_at else None
+            }
+            for app in all_processed_apps
+        ]
+        
         return {
             "success": True,
-            "message": f"{len(saved_apps)}개 앱 가져오기 완료",
+            "message": f"{len(saved_apps)}개 새 앱 저장, {len(updated_apps)}개 앱 업데이트 완료",
             "saved_count": len(saved_apps),
+            "updated_count": len(updated_apps),
+            "total_count": len(all_processed_apps),
             "skipped_count": skipped_count,
             "category": category,
             "play_category": play_category,
+            "apps": apps_response,  # 실제 저장/업데이트된 앱 목록
             "fetched_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat()
         }
         

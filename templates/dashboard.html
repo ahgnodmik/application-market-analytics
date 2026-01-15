@@ -774,8 +774,8 @@ async function collectApps() {
             document.getElementById(category.progressId).style.width = '50%';
             
             try {
-                // 앱 수집 API 호출
-                const response = await fetch(`/api/playstore/fetch-rankings?category=top_free&limit=10&play_category=${category.key}&force=true`, {
+                // 앱 수집 API 호출 (랜덤 수집을 위해 충분한 수를 가져온 후 서버에서 5개 선택)
+                const response = await fetch(`/api/playstore/fetch-rankings?category=top_free&limit=20&play_category=${category.key}&force=true`, {
                     method: 'POST'
                 });
                 
@@ -787,18 +787,22 @@ async function collectApps() {
                 const result = await response.json();
                 
                 // 진행 상태 완료
-                document.getElementById(category.statusId).textContent = `완료 (${result.saved_count || 0}개)`;
+                const totalCount = result.total_count || result.saved_count || 0;
+                document.getElementById(category.statusId).textContent = `완료 (${totalCount}개)`;
                 document.getElementById(category.progressId).style.width = '100%';
                 
-                // 수집된 앱 정보 저장
-                if (result.saved_count > 0) {
-                    // 수집된 앱 목록 가져오기
+                // 수집된 앱 정보 저장 (API 응답에서 직접 가져오기)
+                if (result.apps && Array.isArray(result.apps) && result.apps.length > 0) {
+                    // API 응답에 앱 목록이 있으면 직접 사용
+                    allCollectedApps.push(...result.apps.map(app => ({ ...app, category_name: category.name })));
+                } else if (totalCount > 0) {
+                    // 앱 목록이 없으면 최근 수집된 앱 가져오기
                     const appsResponse = await fetch(`/api/apps/playstore?limit=1000`);
                     if (appsResponse.ok) {
                         const apps = await appsResponse.json();
                         const categoryApps = Array.isArray(apps) ? apps.filter(app => app.category === category.key) : [];
-                        // 최신 앱들만 가져오기 (마지막 saved_count개)
-                        const newApps = categoryApps.slice(-result.saved_count);
+                        // 최신 앱들만 가져오기 (마지막 totalCount개)
+                        const newApps = categoryApps.slice(-totalCount);
                         allCollectedApps.push(...newApps.map(app => ({ ...app, category_name: category.name })));
                     }
                 }
