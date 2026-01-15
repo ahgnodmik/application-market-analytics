@@ -77,21 +77,41 @@ async def fetch_rankings_impl(
             raise HTTPException(status_code=500, detail="앱 데이터를 가져올 수 없습니다.")
         
         # 샘플 데이터인지 확인 (YouTube, Instagram만 있는 경우)
+        import logging
+        logger = logging.getLogger(__name__)
         app_names = [app.get("name", "") for app in apps_data]
-        if len(set(app_names)) <= 2 and ("YouTube" in app_names or "Instagram" in app_names):
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.warning(f"Only sample data received (YouTube/Instagram). Total apps: {len(apps_data)}, unique: {len(set(app_names))}")
-            logger.warning(f"Play Store scraper may not be working. Attempting to fetch more diverse apps...")
+        unique_names = set(app_names)
+        
+        # 샘플 데이터 감지: YouTube/Instagram만 있거나, 고유 앱이 2개 이하인 경우
+        is_sample_data = (
+            len(unique_names) <= 2 and 
+            ("YouTube" in unique_names or "Instagram" in unique_names)
+        )
+        
+        if is_sample_data:
+            logger.warning(f"Sample data detected! Only {len(unique_names)} unique apps: {unique_names}")
+            logger.warning(f"Attempting to fetch real Play Store data with category: {play_category}")
             
-            # 카테고리 없이 전체 앱 목록 시도
+            # 실제 Play Store에서 다시 시도 (더 많은 앱 수집)
             try:
-                all_apps = await fetch_top_apps(category=category, limit=50, play_category=None)
-                if all_apps and len(set([a.get("name", "") for a in all_apps])) > 2:
-                    apps_data = all_apps
-                    logger.info(f"Successfully fetched diverse apps: {len(apps_data)} apps")
+                # 카테고리별로 더 많은 앱 가져오기
+                real_apps = await fetch_top_apps(
+                    category=category, 
+                    limit=50,  # 충분한 수를 가져와서 랜덤 선택
+                    play_category=play_category
+                )
+                
+                if real_apps:
+                    real_names = set([a.get("name", "") for a in real_apps])
+                    if len(real_names) > 2 and not ("YouTube" in real_names and "Instagram" in real_names and len(real_names) == 2):
+                        logger.info(f"Successfully fetched {len(real_apps)} real apps with {len(real_names)} unique names")
+                        apps_data = real_apps
+                    else:
+                        logger.warning(f"Still getting limited apps: {real_names}")
+                else:
+                    logger.error("Failed to fetch real apps")
             except Exception as e:
-                logger.error(f"Failed to fetch diverse apps: {e}")
+                logger.error(f"Error fetching real apps: {e}", exc_info=True)
         
         # 데이터베이스에 저장
         saved_apps = []
