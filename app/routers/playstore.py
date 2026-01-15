@@ -68,20 +68,48 @@ async def fetch_rankings_impl(
         )
     
     try:
-        # Play Store에서 앱 목록 가져오기
-        apps_data = await fetch_top_apps(category=category, limit=limit, play_category=play_category)
+        # Play Store에서 앱 목록 가져오기 (더 많은 앱을 가져와서 랜덤 선택)
+        # 랜덤 선택을 위해 충분한 수를 가져옴 (최소 20개 이상)
+        fetch_limit = max(limit * 4, 20)  # 최소 20개 이상 가져오기
+        apps_data = await fetch_top_apps(category=category, limit=fetch_limit, play_category=play_category)
         
         if not apps_data:
             raise HTTPException(status_code=500, detail="앱 데이터를 가져올 수 없습니다.")
+        
+        # 샘플 데이터인지 확인 (YouTube, Instagram만 있는 경우)
+        app_names = [app.get("name", "") for app in apps_data]
+        if len(set(app_names)) <= 2 and ("YouTube" in app_names or "Instagram" in app_names):
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Only sample data received (YouTube/Instagram). Total apps: {len(apps_data)}, unique: {len(set(app_names))}")
+            logger.warning(f"Play Store scraper may not be working. Attempting to fetch more diverse apps...")
+            
+            # 카테고리 없이 전체 앱 목록 시도
+            try:
+                all_apps = await fetch_top_apps(category=category, limit=50, play_category=None)
+                if all_apps and len(set([a.get("name", "") for a in all_apps])) > 2:
+                    apps_data = all_apps
+                    logger.info(f"Successfully fetched diverse apps: {len(apps_data)} apps")
+            except Exception as e:
+                logger.error(f"Failed to fetch diverse apps: {e}")
         
         # 데이터베이스에 저장
         saved_apps = []
         updated_apps = []
         skipped_count = 0
         
+        # 중복 제거 (같은 패키지 이름 제거)
+        unique_apps = {}
+        for app in apps_data:
+            package_name = app.get("package_name")
+            if package_name and package_name not in unique_apps:
+                unique_apps[package_name] = app
+        
+        apps_data_unique = list(unique_apps.values())
+        
         # 랜덤 수집을 위해 앱 데이터를 섞기
         import random
-        shuffled_apps = apps_data.copy()
+        shuffled_apps = apps_data_unique.copy()
         random.shuffle(shuffled_apps)
         
         # 최대 5개만 랜덤하게 선택

@@ -193,13 +193,25 @@ async def fetch_top_apps_real(
         
         # 상위 앱 가져오기
         logger.info(f"Fetching {category} apps from Play Store (category: {play_category}, limit: {limit})...")
-        apps_data = collections(
-            collection=collection_type,
-            category=play_category_obj,
-            results=min(limit, 250),  # 최대 250개까지 가능
-            lang=lang,
-            country=country
-        )
+        try:
+            apps_data = collections(
+                collection=collection_type,
+                category=play_category_obj,
+                results=min(limit, 250),  # 최대 250개까지 가능
+                lang=lang,
+                country=country
+            )
+        except Exception as e:
+            logger.error(f"Error fetching apps with category {play_category_obj}: {e}")
+            # 카테고리 없이 전체 앱 목록 시도
+            logger.info("Trying to fetch apps without specific category...")
+            apps_data = collections(
+                collection=collection_type,
+                category=Category.APPLICATION,  # 기본 APPLICATION 카테고리 사용
+                results=min(limit * 2, 250),  # 더 많이 가져오기
+                lang=lang,
+                country=country
+            )
         
         # 데이터 형식 변환
         parsed_apps = []
