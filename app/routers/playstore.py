@@ -69,8 +69,9 @@ async def fetch_rankings_impl(
     
     try:
         # Play Store에서 앱 목록 가져오기 (더 많은 앱을 가져와서 랜덤 선택)
-        # 랜덤 선택을 위해 충분한 수를 가져옴 (최소 20개 이상)
-        fetch_limit = max(limit * 4, 20)  # 최소 20개 이상 가져오기
+        # 랜덤 선택을 위해 충분한 수를 가져옴 (최소 50개 이상)
+        fetch_limit = max(limit * 5, 50)  # 최소 50개 이상 가져오기 (YouTube/Instagram 제외 대비)
+        logger.info(f"Fetching {fetch_limit} apps from Play Store (category: {play_category})")
         apps_data = await fetch_top_apps(category=category, limit=fetch_limit, play_category=play_category)
         
         if not apps_data:
@@ -146,11 +147,73 @@ async def fetch_rankings_impl(
         apps_data_unique = list(unique_apps.values())
         logger.info(f"After filtering: {len(apps_data_unique)} unique apps (excluded: {excluded_count})")
         
+        # 필터링 후 앱이 없으면 더 많은 앱을 가져와서 재시도
         if len(apps_data_unique) == 0:
-            logger.error(f"No apps remaining after filtering! Original: {len(apps_data)}, Excluded: {excluded_count}")
+            logger.warning(f"No apps remaining after filtering! Original: {len(apps_data)}, Excluded: {excluded_count}")
+            logger.info(f"Attempting to fetch more apps (limit: {fetch_limit * 2}) to find non-excluded apps...")
+            
+            try:
+                # 더 많은 앱을 가져오기 (2배)
+                retry_apps_data = await fetch_top_apps(
+                    category=category, 
+                    limit=fetch_limit * 2, 
+                    play_category=play_category
+                )
+                
+                if retry_apps_data and len(retry_apps_data) > len(apps_data):
+                    logger.info(f"Retry fetched {len(retry_apps_data)} apps")
+                    # 다시 필터링
+                    unique_apps = {}
+                    excluded_count = 0
+                    for app in retry_apps_data:
+                        package_name = app.get("package_name", "").lower()
+                        app_name = app.get("name", "").lower()
+                        
+                        if any(excluded in package_name or excluded in app_name for excluded in excluded_apps):
+                            excluded_count += 1
+                            continue
+                        
+                        if package_name and package_name not in unique_apps:
+                            unique_apps[package_name] = app
+                    
+                    apps_data_unique = list(unique_apps.values())
+                    logger.info(f"After retry filtering: {len(apps_data_unique)} unique apps (excluded: {excluded_count})")
+                    
+                    # 여전히 없으면 카테고리 없이 전체 앱 목록 시도
+                    if len(apps_data_unique) == 0:
+                        logger.warning("Still no apps after retry, trying without category filter...")
+                        all_apps_data = await fetch_top_apps(
+                            category=category,
+                            limit=50,
+                            play_category=None  # 카테고리 없이 전체 앱 목록
+                        )
+                        
+                        if all_apps_data:
+                            unique_apps = {}
+                            excluded_count = 0
+                            for app in all_apps_data:
+                                package_name = app.get("package_name", "").lower()
+                                app_name = app.get("name", "").lower()
+                                
+                                if any(excluded in package_name or excluded in app_name for excluded in excluded_apps):
+                                    excluded_count += 1
+                                    continue
+                                
+                                if package_name and package_name not in unique_apps:
+                                    unique_apps[package_name] = app
+                            
+                            apps_data_unique = list(unique_apps.values())
+                            logger.info(f"After fetching all apps: {len(apps_data_unique)} unique apps")
+                
+            except Exception as e:
+                logger.error(f"Error during retry: {e}", exc_info=True)
+        
+        # 최종 확인: 여전히 앱이 없으면 에러
+        if len(apps_data_unique) == 0:
+            logger.error(f"CRITICAL: No apps remaining after all retry attempts! Original: {len(apps_data)}, Excluded: {excluded_count}")
             raise HTTPException(
                 status_code=500, 
-                detail=f"필터링 후 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 제외된 앱: {excluded_count}"
+                detail=f"필터링 후 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 제외된 앱: {excluded_count}. Play Store에서 더 많은 앱을 가져오려고 시도했지만 실패했습니다."
             )
         
         # 난이도 점수 계산 및 필터링
