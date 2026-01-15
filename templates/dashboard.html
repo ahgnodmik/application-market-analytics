@@ -733,13 +733,19 @@ async function collectApps() {
                 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({ detail: `HTTP ${response.status}` }));
-                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                    const errorMsg = errorData.detail || errorData.error || `HTTP ${response.status}`;
+                    console.error(`Error collecting ${category.name}:`, errorMsg);
+                    throw new Error(errorMsg);
                 }
                 
                 const result = await response.json();
+                console.log(`Collection result for ${category.name}:`, result);
                 
                 // 진행 상태 완료
-                const totalCount = result.total_count || result.saved_count || 0;
+                const totalCount = result.total_count || result.saved_count || result.updated_count || 0;
+                const appsCount = result.apps ? result.apps.length : 0;
+                console.log(`Total count: ${totalCount}, Apps array length: ${appsCount}`);
+                
                 document.getElementById(category.statusId).textContent = `완료 (${totalCount}개)`;
                 document.getElementById(category.progressId).style.width = '100%';
                 

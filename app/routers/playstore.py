@@ -127,13 +127,16 @@ async def fetch_rankings_impl(
         }
         
         # 중복 제거 및 제외 앱 필터링
+        logger.info(f"Starting filtering: {len(apps_data)} apps received")
         unique_apps = {}
+        excluded_count = 0
         for app in apps_data:
             package_name = app.get("package_name", "").lower()
             app_name = app.get("name", "").lower()
             
             # YouTube/Instagram 제외
             if any(excluded in package_name or excluded in app_name for excluded in excluded_apps):
+                excluded_count += 1
                 continue
             
             # 중복 제거
@@ -141,6 +144,14 @@ async def fetch_rankings_impl(
                 unique_apps[package_name] = app
         
         apps_data_unique = list(unique_apps.values())
+        logger.info(f"After filtering: {len(apps_data_unique)} unique apps (excluded: {excluded_count})")
+        
+        if len(apps_data_unique) == 0:
+            logger.error(f"No apps remaining after filtering! Original: {len(apps_data)}, Excluded: {excluded_count}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"필터링 후 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 제외된 앱: {excluded_count}"
+            )
         
         # 난이도 점수 계산 및 필터링
         from app.services.difficulty_scorer import estimate_difficulty_from_description
@@ -152,18 +163,24 @@ async def fetch_rankings_impl(
             app["estimated_difficulty"] = difficulty
             apps_with_difficulty.append(app)
         
+        logger.info(f"Calculated difficulty for {len(apps_with_difficulty)} apps")
+        
         # 난이도 기준을 점진적으로 완화하며 앱 선택
         apps_to_process = []
         
         # 1단계: 난이도 1.0 이하 앱 (최우선)
         low_difficulty_apps = [app for app in apps_with_difficulty if app.get("estimated_difficulty", 2.0) <= 1.0]
+        logger.info(f"Step 1: Found {len(low_difficulty_apps)} apps with difficulty <= 1.0")
+        
         if len(low_difficulty_apps) >= 5:
             import random
             random.shuffle(low_difficulty_apps)
             apps_to_process = low_difficulty_apps[:5]
+            logger.info(f"Selected 5 apps from low difficulty pool")
         elif len(low_difficulty_apps) > 0:
             # 난이도 1.0 이하 앱이 있으면 일단 사용
             apps_to_process = low_difficulty_apps.copy()
+            logger.info(f"Selected {len(apps_to_process)} apps from low difficulty pool, need more")
         
         # 2단계: 난이도 1.5 이하로 확대 (1단계에서 부족한 경우)
         if len(apps_to_process) < 5:
@@ -172,13 +189,16 @@ async def fetch_rankings_impl(
                 if app.get("estimated_difficulty", 2.0) <= 1.5 
                 and app not in apps_to_process
             ]
+            logger.info(f"Step 2: Found {len(medium_difficulty_apps)} apps with difficulty <= 1.5")
             needed = 5 - len(apps_to_process)
             if len(medium_difficulty_apps) >= needed:
                 import random
                 random.shuffle(medium_difficulty_apps)
                 apps_to_process.extend(medium_difficulty_apps[:needed])
+                logger.info(f"Added {needed} apps from medium difficulty pool")
             elif len(medium_difficulty_apps) > 0:
                 apps_to_process.extend(medium_difficulty_apps)
+                logger.info(f"Added {len(medium_difficulty_apps)} apps from medium difficulty pool")
         
         # 3단계: 난이도 순으로 정렬하여 낮은 것부터 선택 (여전히 부족한 경우)
         if len(apps_to_process) < 5:
@@ -186,19 +206,30 @@ async def fetch_rankings_impl(
                 app for app in apps_with_difficulty 
                 if app not in apps_to_process
             ]
+            logger.info(f"Step 3: Found {len(remaining_apps)} remaining apps")
             # 난이도 순으로 정렬 (낮은 것부터)
             remaining_apps.sort(key=lambda x: x.get("estimated_difficulty", 2.0))
             needed = 5 - len(apps_to_process)
             apps_to_process.extend(remaining_apps[:needed])
+            logger.info(f"Added {min(needed, len(remaining_apps))} apps from remaining pool")
         
         # 최종 확인: 여전히 앱이 없으면 모든 앱 중에서 난이도가 낮은 순으로 선택
         if len(apps_to_process) == 0:
             logger.warning("No apps found after filtering, selecting lowest difficulty apps from all available")
             apps_with_difficulty.sort(key=lambda x: x.get("estimated_difficulty", 2.0))
             apps_to_process = apps_with_difficulty[:min(5, len(apps_with_difficulty))]
+            logger.info(f"Final fallback: Selected {len(apps_to_process)} apps")
         
         # 최종적으로 5개로 제한
         apps_to_process = apps_to_process[:5]
+        logger.info(f"Final selection: {len(apps_to_process)} apps to process")
+        
+        if len(apps_to_process) == 0:
+            logger.error("CRITICAL: No apps to process after all filtering steps!")
+            raise HTTPException(
+                status_code=500,
+                detail=f"모든 필터링 단계를 거친 후에도 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 필터링 후: {len(apps_data_unique)}"
+            )
         
         for app_data in apps_to_process:
             try:
