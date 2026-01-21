@@ -58,6 +58,9 @@ async def fetch_rankings_impl(
         force: 월요일이 아니어도 강제로 가져오기
         play_category: Play Store 카테고리 (예: "APPLICATION_SOCIAL", "GAME" 등)
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     # 월요일인지 확인 (GMT+9 기준)
     if not force and not should_fetch_this_week():
         current_time = datetime.now(ZoneInfo("Asia/Seoul"))
@@ -78,8 +81,6 @@ async def fetch_rankings_impl(
             raise HTTPException(status_code=500, detail="앱 데이터를 가져올 수 없습니다.")
         
         # 샘플 데이터인지 확인 (YouTube, Instagram만 있는 경우)
-        import logging
-        logger = logging.getLogger(__name__)
         app_names = [app.get("name", "") for app in apps_data]
         unique_names = set(app_names)
         
