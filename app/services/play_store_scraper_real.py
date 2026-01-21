@@ -329,30 +329,129 @@ async def fetch_app_details_real(package_name: str, country: str = "kr", lang: s
 
 def get_sample_apps(limit: int = 100) -> List[Dict]:
     """
-    샘플 앱 데이터 (fallback)
+    샘플 앱 데이터 (fallback) - 다양한 앱 제공
     """
     sample_apps = [
         {
-            "name": "YouTube",
-            "package_name": "com.google.android.youtube",
-            "category": "Video Players & Editors",
+            "name": "Notion",
+            "package_name": "notion.id",
+            "category": "Productivity",
+            "rating": 4.5,
+            "review_count": 500000,
+            "price_model": "free",
+            "description": "모든 것을 하나로 - 노션으로 작업하고 생산성을 높이세요",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_PRODUCTIVITY"
+        },
+        {
+            "name": "Todoist",
+            "package_name": "com.todoist",
+            "category": "Productivity",
+            "rating": 4.6,
+            "review_count": 300000,
+            "price_model": "free",
+            "description": "할 일 관리 앱 - 효율적인 작업 관리 도구",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_PRODUCTIVITY"
+        },
+        {
+            "name": "Evernote",
+            "package_name": "com.evernote",
+            "category": "Productivity",
+            "rating": 4.4,
+            "review_count": 1000000,
+            "price_model": "free",
+            "description": "메모와 노트 작성 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_PRODUCTIVITY"
+        },
+        {
+            "name": "Google Keep",
+            "package_name": "com.google.android.keep",
+            "category": "Productivity",
             "rating": 4.4,
             "review_count": 50000000,
             "price_model": "free",
-            "description": "세계 최대 동영상 플랫폼",
+            "description": "빠른 메모 작성 및 할 일 관리",
             "last_update": datetime.now().isoformat(),
-            "play_category": "APPLICATION_VIDEO_PLAYERS"
+            "play_category": "APPLICATION_PRODUCTIVITY"
         },
         {
-            "name": "Instagram",
-            "package_name": "com.instagram.android",
-            "category": "Social",
-            "rating": 4.5,
-            "review_count": 30000000,
+            "name": "Trello",
+            "package_name": "com.trello",
+            "category": "Productivity",
+            "rating": 4.4,
+            "review_count": 500000,
             "price_model": "free",
-            "description": "사진 및 동영상 공유 소셜 네트워크",
+            "description": "프로젝트 관리와 협업 도구",
             "last_update": datetime.now().isoformat(),
-            "play_category": "APPLICATION_SOCIAL"
+            "play_category": "APPLICATION_PRODUCTIVITY"
+        },
+        {
+            "name": "Forest",
+            "package_name": "me.forestapp",
+            "category": "Lifestyle",
+            "rating": 4.7,
+            "review_count": 1000000,
+            "price_model": "free",
+            "description": "집중력을 높이는 시간 관리 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_LIFESTYLE"
+        },
+        {
+            "name": "Pocket",
+            "package_name": "com.ideashower.ReadItLater.pro",
+            "category": "Lifestyle",
+            "rating": 4.5,
+            "review_count": 500000,
+            "price_model": "free",
+            "description": "나중에 읽기 - 아티클 저장 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_LIFESTYLE"
+        },
+        {
+            "name": "Sleep Cycle",
+            "package_name": "com.northcube.sleepcycle",
+            "category": "Lifestyle",
+            "rating": 4.6,
+            "review_count": 2000000,
+            "price_model": "free",
+            "description": "수면 추적 및 알람 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_LIFESTYLE"
+        },
+        {
+            "name": "Calculator Plus",
+            "package_name": "com.digitalchemy.calculator.free",
+            "category": "Tools",
+            "rating": 4.3,
+            "review_count": 100000,
+            "price_model": "free",
+            "description": "고급 계산기 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_TOOLS"
+        },
+        {
+            "name": "CamScanner",
+            "package_name": "com.intsig.camscanner",
+            "category": "Tools",
+            "rating": 4.5,
+            "review_count": 10000000,
+            "price_model": "free",
+            "description": "문서 스캔 및 PDF 변환",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_TOOLS"
+        },
+        {
+            "name": "Google Translate",
+            "package_name": "com.google.android.apps.translate",
+            "category": "Tools",
+            "rating": 4.5,
+            "review_count": 100000000,
+            "price_model": "free",
+            "description": "언어 번역 앱",
+            "last_update": datetime.now().isoformat(),
+            "play_category": "APPLICATION_TOOLS"
         },
     ]
     return sample_apps[:limit]
