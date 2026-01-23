@@ -16,6 +16,7 @@ from app.services.play_store_scraper import (
     fetch_top_apps,
     fetch_app_details
 )
+from app.services.play_store_scraper_real import get_sample_apps
 from app.tasks.scheduler import should_fetch_this_week
 from app.services.marketability_scorer import calculate_marketability_score
 from app.services.difficulty_scorer import calculate_app_difficulty
@@ -209,14 +210,13 @@ async def fetch_rankings_impl(
             except Exception as e:
                 logger.error(f"Error during retry: {e}", exc_info=True)
         
-        # 최종 확인: 여전히 앱이 없으면 에러
+        # 최종 확인: 여전히 앱이 없으면 큐레이션 폴백 (YouTube/Instagram 제외된 목록) 사용
+        used_fallback = False
         if len(apps_data_unique) == 0:
-            logger.error(f"CRITICAL: No apps remaining after all retry attempts! Original: {len(apps_data)}, Excluded: {excluded_count}")
-            raise HTTPException(
-                status_code=500, 
-                detail=f"필터링 후 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 제외된 앱: {excluded_count}. Play Store에서 더 많은 앱을 가져오려고 시도했지만 실패했습니다."
-            )
-        
+            logger.warning("No apps remaining after retries; using curated fallback list (YouTube/Instagram excluded)")
+            apps_data_unique = get_sample_apps(max(limit, 50))
+            used_fallback = True
+
         # 난이도 점수 계산 및 필터링
         from app.services.difficulty_scorer import estimate_difficulty_from_description
         
@@ -377,16 +377,20 @@ async def fetch_rankings_impl(
             for app in all_processed_apps
         ]
         
+        msg = f"{len(saved_apps)}개 새 앱 저장, {len(updated_apps)}개 앱 업데이트 완료"
+        if used_fallback:
+            msg += " (Play Store 제한으로 큐레이션 목록 사용)"
         return {
             "success": True,
-            "message": f"{len(saved_apps)}개 새 앱 저장, {len(updated_apps)}개 앱 업데이트 완료",
+            "message": msg,
             "saved_count": len(saved_apps),
             "updated_count": len(updated_apps),
             "total_count": len(all_processed_apps),
             "skipped_count": skipped_count,
             "category": category,
             "play_category": play_category,
-            "apps": apps_response,  # 실제 저장/업데이트된 앱 목록
+            "apps": apps_response,
+            "used_fallback": used_fallback,
             "fetched_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat()
         }
         

@@ -241,8 +241,17 @@ async def fetch_top_apps_real(
                 continue
         
         logger.info(f"Successfully fetched {len(parsed_apps)} apps from Play Store")
+
+        # Play Store가 2개 이하이고 전부 YouTube/Instagram이면 큐레이션 폴백 사용
+        if len(parsed_apps) <= 2:
+            packages = {p.get("package_name", "").lower() for p in parsed_apps}
+            excluded = {"com.google.android.youtube", "com.instagram.android"}
+            if packages and packages.issubset(excluded):
+                logger.warning("Play Store returned only YouTube/Instagram; using curated fallback list")
+                return get_sample_apps(limit)
+
         return parsed_apps[:limit]
-        
+
     except Exception as e:
         logger.error(f"Error fetching Play Store data: {e}")
         import traceback
