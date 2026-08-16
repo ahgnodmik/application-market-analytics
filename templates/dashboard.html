@@ -133,6 +133,41 @@
         </div>
     </div>
 
+    <!-- 급상승/급락 앱 -->
+    <div class="notion-card p-5 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-notion-text">📈 급상승/급락 앱</h2>
+                <p class="text-sm text-notion-text-light mt-1">최근 순위가 급격히 변한 앱을 확인하세요 (최근 7일 기준)</p>
+            </div>
+            <button id="loadTrendingAppsBtn" class="notion-button notion-button-orange">
+                새로고침
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- 급상승 앱 -->
+            <div>
+                <h3 class="text-md font-semibold text-green-700 mb-3 flex items-center">
+                    <span class="mr-2">⬆️</span> 급상승 앱
+                </h3>
+                <div id="rising-apps-list" class="space-y-2">
+                    <p class="text-notion-text-light text-sm">로딩 중...</p>
+                </div>
+            </div>
+            
+            <!-- 급락 앱 -->
+            <div>
+                <h3 class="text-md font-semibold text-red-700 mb-3 flex items-center">
+                    <span class="mr-2">⬇️</span> 급락 앱
+                </h3>
+                <div id="dropped-apps-list" class="space-y-2">
+                    <p class="text-notion-text-light text-sm">로딩 중...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MVP 앱 추천 (생산성, 라이프스타일, 도구) -->
     <div class="notion-card p-5 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
         <div class="flex items-center justify-between mb-4">
@@ -168,6 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadStatistics();
     await loadRecommendations();
     await loadMvpProductivityApps();
+    await loadTrendingApps();
     await loadDashboardCategories(true);
 
     // 대시보드 카테고리 분석 기능
@@ -182,6 +218,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // MVP 생산성 앱 새로고침 버튼
     document.getElementById('loadMvpAppsBtn').addEventListener('click', loadMvpProductivityApps);
+    
+    // 급상승/급락 앱 새로고침 버튼
+    document.getElementById('loadTrendingAppsBtn').addEventListener('click', loadTrendingApps);
     
     // 앱 수집 버튼
     document.getElementById('collectAppsBtn').addEventListener('click', collectApps);
@@ -616,6 +655,98 @@ async function loadMvpProductivityApps() {
     } finally {
         btn.disabled = false;
         btn.textContent = '목록 새로고침';
+    }
+}
+
+// 급상승/급락 앱 로드
+async function loadTrendingApps() {
+    const risingContainer = document.getElementById('rising-apps-list');
+    const droppedContainer = document.getElementById('dropped-apps-list');
+    const btn = document.getElementById('loadTrendingAppsBtn');
+    
+    btn.disabled = true;
+    btn.textContent = '로딩 중...';
+    risingContainer.innerHTML = '<p class="text-notion-text-light text-sm">로딩 중...</p>';
+    droppedContainer.innerHTML = '<p class="text-notion-text-light text-sm">로딩 중...</p>';
+    
+    try {
+        // 급상승 앱 조회
+        const risingRes = await fetch('/api/playstore/rising-apps?category=top_free&min_rank_change=20&limit=10&days=7');
+        const risingData = risingRes.ok ? await risingRes.json() : { apps: [] };
+        const risingApps = Array.isArray(risingData.apps) ? risingData.apps : [];
+        
+        // 급락 앱 조회
+        const droppedRes = await fetch('/api/playstore/dropped-apps?category=top_free&min_rank_change=20&limit=10&days=7');
+        const droppedData = droppedRes.ok ? await droppedRes.json() : { apps: [] };
+        const droppedApps = Array.isArray(droppedData.apps) ? droppedData.apps : [];
+        
+        // 급상승 앱 렌더링
+        if (risingApps.length === 0) {
+            risingContainer.innerHTML = '<p class="text-notion-text-light text-sm">급상승 앱이 없습니다.</p>';
+        } else {
+            risingContainer.innerHTML = risingApps.map(item => {
+                const app = item.app;
+                const ranking = item.ranking;
+                const change = Math.abs(ranking.rank_change);
+                return `
+                    <div class="p-3 border border-green-200 rounded bg-white hover:bg-green-50 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="font-semibold text-sm text-notion-text">${app.name}</div>
+                                <div class="text-xs text-notion-text-light mt-1">${app.package_name}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-semibold text-green-600">+${change}위</div>
+                                <div class="text-xs text-notion-text-light">${ranking.previous_rank || '?'} → ${ranking.current_rank}</div>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2 text-xs">
+                            ${app.rating ? `<span>⭐ ${app.rating.toFixed(1)}</span>` : ''}
+                            ${app.review_count ? `<span>📝 ${(app.review_count / 1000).toFixed(0)}K</span>` : ''}
+                            ${app.difficulty_score !== null ? `<span>난이도: ${app.difficulty_score.toFixed(1)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 급락 앱 렌더링
+        if (droppedApps.length === 0) {
+            droppedContainer.innerHTML = '<p class="text-notion-text-light text-sm">급락 앱이 없습니다.</p>';
+        } else {
+            droppedContainer.innerHTML = droppedApps.map(item => {
+                const app = item.app;
+                const ranking = item.ranking;
+                const change = ranking.rank_change;
+                return `
+                    <div class="p-3 border border-red-200 rounded bg-white hover:bg-red-50 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="font-semibold text-sm text-notion-text">${app.name}</div>
+                                <div class="text-xs text-notion-text-light mt-1">${app.package_name}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-semibold text-red-600">-${change}위</div>
+                                <div class="text-xs text-notion-text-light">${ranking.previous_rank || '?'} → ${ranking.current_rank}</div>
+                            </div>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2 text-xs">
+                            ${app.rating ? `<span>⭐ ${app.rating.toFixed(1)}</span>` : ''}
+                            ${app.review_count ? `<span>📝 ${(app.review_count / 1000).toFixed(0)}K</span>` : ''}
+                            ${app.difficulty_score !== null ? `<span>난이도: ${app.difficulty_score.toFixed(1)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+    } catch (error) {
+        console.error('Error loading trending apps:', error);
+        risingContainer.innerHTML = '<p class="text-red-500 text-sm">로딩 실패</p>';
+        droppedContainer.innerHTML = '<p class="text-red-500 text-sm">로딩 실패</p>';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '새로고침';
     }
 }
 

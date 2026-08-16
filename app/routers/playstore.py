@@ -10,7 +10,7 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.models import App
+from app.models import App, AppRanking
 from app.schemas import AppCreate, AppResponse
 from app.services.play_store_scraper import (
     fetch_top_apps,
@@ -288,6 +288,9 @@ async def fetch_rankings_impl(
         apps_to_process = apps_to_process[:5]
         logger.info(f"Final selection: {len(apps_to_process)} apps to process")
         
+        # 순위 정보 저장을 위한 현재 시간
+        fetched_at = datetime.now(ZoneInfo("Asia/Seoul"))
+        
         if len(apps_to_process) == 0:
             logger.error("CRITICAL: No apps to process after all filtering steps!")
             raise HTTPException(
@@ -295,9 +298,10 @@ async def fetch_rankings_impl(
                 detail=f"모든 필터링 단계를 거친 후에도 수집할 앱이 없습니다. 원본 앱 수: {len(apps_data)}, 필터링 후: {len(apps_data_unique)}"
             )
         
-        for app_data in apps_to_process:
+        for rank_idx, app_data in enumerate(apps_to_process, start=1):
             try:
                 package_name = app_data.get("package_name")
+                current_rank = rank_idx  # 현재 순위 (1부터 시작)
                 
                 # 이미 존재하는 앱인지 확인 (패키지 이름 기준)
                 if package_name:
@@ -323,35 +327,63 @@ async def fetch_rankings_impl(
                         db.commit()
                         db.refresh(existing)
                         updated_apps.append(existing)
-                        continue
-                
-                # 새 앱 생성
-                db_app = App(
-                    name=app_data.get("name", "Unknown"),
-                    package_name=package_name,
-                    category=app_data.get("category"),
-                    rating=app_data.get("rating"),
-                    review_count=app_data.get("review_count", 0),
-                    price_model=app_data.get("price_model", "free"),
-                    description=app_data.get("description", ""),
-                    difficulty_score=0.0,  # 나중에 기능 분석 시 계산
-                    marketability_score=calculate_marketability_score(
-                        review_count=app_data.get("review_count", 0),
-                        rating=app_data.get("rating", 0.0),
-                        last_update=app_data.get("last_update"),
-                        price_model=app_data.get("price_model", "free"),
-                        description=app_data.get("description", "")
+                        db_app = existing
+                    else:
+                        # 새 앱 생성
+                        db_app = App(
+                            name=app_data.get("name", "Unknown"),
+                            package_name=package_name,
+                            category=app_data.get("category"),
+                            rating=app_data.get("rating"),
+                            review_count=app_data.get("review_count", 0),
+                            price_model=app_data.get("price_model", "free"),
+                            description=app_data.get("description", ""),
+                            difficulty_score=0.0,  # 나중에 기능 분석 시 계산
+                            marketability_score=calculate_marketability_score(
+                                review_count=app_data.get("review_count", 0),
+                                rating=app_data.get("rating", 0.0),
+                                last_update=app_data.get("last_update"),
+                                price_model=app_data.get("price_model", "free"),
+                                description=app_data.get("description", "")
+                            )
+                        )
+                        
+                        db.add(db_app)
+                        db.commit()
+                        db.refresh(db_app)
+                        saved_apps.append(db_app)
+                    
+                    # 순위 정보 저장
+                    # 이전 순위 조회 (같은 category, play_category에서 가장 최근)
+                    previous_ranking = db.query(AppRanking).filter(
+                        AppRanking.app_id == db_app.id,
+                        AppRanking.category == category,
+                        AppRanking.play_category == (play_category or "")
+                    ).order_by(AppRanking.fetched_at.desc()).first()
+                    
+                    previous_rank = previous_ranking.rank if previous_ranking else None
+                    rank_change = (previous_rank - current_rank) if previous_rank else 0  # 음수=상승, 양수=하락
+                    
+                    # 새로운 순위 기록 저장
+                    ranking = AppRanking(
+                        app_id=db_app.id,
+                        rank=current_rank,
+                        category=category,
+                        play_category=play_category or "",
+                        rank_change=rank_change,
+                        previous_rank=previous_rank,
+                        fetched_at=fetched_at
                     )
-                )
-                
-                db.add(db_app)
-                db.commit()
-                db.refresh(db_app)
-                saved_apps.append(db_app)
+                    db.add(ranking)
+                    db.commit()
+                    
+                else:
+                    skipped_count += 1
+                    continue
                 
             except Exception as e:
                 db.rollback()
-                print(f"Error saving app {app_data.get('name')}: {e}")
+                logger.error(f"Error saving app {app_data.get('name')}: {e}", exc_info=True)
                 skipped_count += 1
                 continue
         
@@ -862,3 +894,191 @@ async def get_fetch_status(db: Session = Depends(get_db)):
         "next_monday": next_monday.isoformat(),
         "timezone": "GMT+9 (Asia/Seoul)"
     }
+
+
+@router.get("/rising-apps")
+async def get_rising_apps(
+    category: str = "top_free",
+    play_category: Optional[str] = None,
+    min_rank_change: int = 20,  # 최소 순위 상승 폭 (예: 20위 이상 상승)
+    limit: int = 20,
+    days: int = 7,  # 최근 며칠간의 데이터를 볼지
+    db: Session = Depends(get_db)
+):
+    """
+    급상승 앱 목록 조회
+    
+    Args:
+        category: 순위 타입 (top_free, top_paid, top_grossing)
+        play_category: Play Store 카테고리 필터 (선택)
+        min_rank_change: 최소 순위 상승 폭 (기본값: 20위)
+        limit: 반환할 최대 앱 수
+        days: 최근 며칠간의 데이터를 볼지 (기본값: 7일)
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        from datetime import timedelta
+        
+        # 최근 N일간의 순위 데이터 조회
+        cutoff_date = datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=days)
+        
+        # 급상승 앱 조회 (rank_change가 음수이고 절댓값이 min_rank_change 이상)
+        query = db.query(AppRanking, App).join(
+            App, AppRanking.app_id == App.id
+        ).filter(
+            AppRanking.category == category,
+            AppRanking.rank_change < 0,  # 음수 = 상승
+            AppRanking.rank_change <= -min_rank_change,  # 최소 상승 폭
+            AppRanking.fetched_at >= cutoff_date
+        )
+        
+        if play_category:
+            query = query.filter(AppRanking.play_category == play_category)
+        
+        # 가장 최근 순위 변화가 큰 순으로 정렬
+        results = query.order_by(
+            AppRanking.rank_change.asc(),  # 음수이므로 오름차순 = 큰 변화부터
+            AppRanking.fetched_at.desc()
+        ).limit(limit).all()
+        
+        # 중복 제거 (같은 앱의 최신 순위 변화만)
+        seen_apps = {}
+        rising_apps = []
+        
+        for ranking, app in results:
+            if app.id not in seen_apps:
+                seen_apps[app.id] = True
+                rising_apps.append({
+                    "app": {
+                        "id": app.id,
+                        "name": app.name,
+                        "package_name": app.package_name,
+                        "category": app.category,
+                        "rating": app.rating,
+                        "review_count": app.review_count,
+                        "price_model": app.price_model,
+                        "difficulty_score": app.difficulty_score,
+                        "marketability_score": app.marketability_score,
+                    },
+                    "ranking": {
+                        "current_rank": ranking.rank,
+                        "previous_rank": ranking.previous_rank,
+                        "rank_change": ranking.rank_change,  # 음수 (예: -30 = 30위 상승)
+                        "rank_change_abs": abs(ranking.rank_change),
+                        "fetched_at": ranking.fetched_at.isoformat() if ranking.fetched_at else None,
+                        "category": ranking.category,
+                        "play_category": ranking.play_category,
+                    }
+                })
+        
+        # 순위 변화 절댓값 기준으로 정렬 (큰 변화부터)
+        rising_apps.sort(key=lambda x: x["ranking"]["rank_change_abs"], reverse=True)
+        
+        return {
+            "success": True,
+            "count": len(rising_apps),
+            "category": category,
+            "play_category": play_category,
+            "min_rank_change": min_rank_change,
+            "days": days,
+            "apps": rising_apps[:limit]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching rising apps: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"급상승 앱 조회 실패: {str(e)}")
+
+
+@router.get("/dropped-apps")
+async def get_dropped_apps(
+    category: str = "top_free",
+    play_category: Optional[str] = None,
+    min_rank_change: int = 20,  # 최소 순위 하락 폭
+    limit: int = 20,
+    days: int = 7,
+    db: Session = Depends(get_db)
+):
+    """
+    급락/사라진 앱 목록 조회
+    
+    Args:
+        category: 순위 타입
+        play_category: Play Store 카테고리 필터
+        min_rank_change: 최소 순위 하락 폭 (기본값: 20위)
+        limit: 반환할 최대 앱 수
+        days: 최근 며칠간의 데이터를 볼지
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        from datetime import timedelta
+        
+        cutoff_date = datetime.now(ZoneInfo("Asia/Seoul")) - timedelta(days=days)
+        
+        # 급락 앱 조회 (rank_change가 양수이고 min_rank_change 이상)
+        query = db.query(AppRanking, App).join(
+            App, AppRanking.app_id == App.id
+        ).filter(
+            AppRanking.category == category,
+            AppRanking.rank_change > 0,  # 양수 = 하락
+            AppRanking.rank_change >= min_rank_change,
+            AppRanking.fetched_at >= cutoff_date
+        )
+        
+        if play_category:
+            query = query.filter(AppRanking.play_category == play_category)
+        
+        results = query.order_by(
+            AppRanking.rank_change.desc(),  # 큰 하락부터
+            AppRanking.fetched_at.desc()
+        ).limit(limit).all()
+        
+        # 중복 제거
+        seen_apps = {}
+        dropped_apps = []
+        
+        for ranking, app in results:
+            if app.id not in seen_apps:
+                seen_apps[app.id] = True
+                dropped_apps.append({
+                    "app": {
+                        "id": app.id,
+                        "name": app.name,
+                        "package_name": app.package_name,
+                        "category": app.category,
+                        "rating": app.rating,
+                        "review_count": app.review_count,
+                        "price_model": app.price_model,
+                        "difficulty_score": app.difficulty_score,
+                        "marketability_score": app.marketability_score,
+                    },
+                    "ranking": {
+                        "current_rank": ranking.rank,
+                        "previous_rank": ranking.previous_rank,
+                        "rank_change": ranking.rank_change,  # 양수 (예: +30 = 30위 하락)
+                        "rank_change_abs": abs(ranking.rank_change),
+                        "fetched_at": ranking.fetched_at.isoformat() if ranking.fetched_at else None,
+                        "category": ranking.category,
+                        "play_category": ranking.play_category,
+                    }
+                })
+        
+        # 순위 변화 기준으로 정렬 (큰 하락부터)
+        dropped_apps.sort(key=lambda x: x["ranking"]["rank_change"], reverse=True)
+        
+        return {
+            "success": True,
+            "count": len(dropped_apps),
+            "category": category,
+            "play_category": play_category,
+            "min_rank_change": min_rank_change,
+            "days": days,
+            "apps": dropped_apps[:limit]
+        }
+        
+    except Exception as e:
+        logger.error(f"Error fetching dropped apps: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"급락 앱 조회 실패: {str(e)}")

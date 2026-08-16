@@ -27,6 +27,7 @@ class App(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     features = relationship("Feature", back_populates="app", cascade="all, delete-orphan")
+    rankings = relationship("AppRanking", back_populates="app", cascade="all, delete-orphan")
 
 
 class Feature(Base):
@@ -80,3 +81,29 @@ class ScheduledTask(Base):
         # 동일 작업-날짜 조합은 유일해야 함 (중복 방지)
         {"sqlite_autoincrement": True},
     )
+
+
+class AppRanking(Base):
+    """
+    앱 순위 히스토리 추적
+    급상승/급락 앱 분석을 위한 순위 기록
+    """
+    __tablename__ = "app_rankings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    app_id = Column(Integer, ForeignKey("apps.id"), nullable=False, index=True)
+    
+    # 순위 정보
+    rank = Column(Integer, nullable=False)  # 순위 (1, 2, 3, ...)
+    category = Column(String, nullable=False, index=True)  # top_free, top_paid, top_grossing
+    play_category = Column(String, index=True)  # APPLICATION_PRODUCTIVITY 등
+    
+    # 순위 변화
+    rank_change = Column(Integer, default=0)  # 이전 순위 대비 변화 (음수=상승, 양수=하락)
+    previous_rank = Column(Integer, nullable=True)  # 이전 순위
+    
+    # 메타데이터
+    fetched_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    app = relationship("App", back_populates="rankings")
